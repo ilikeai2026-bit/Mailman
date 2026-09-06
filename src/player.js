@@ -3,6 +3,8 @@ import {
   steveFaceTexture,
   steveHairTexture,
   mailmanShirtTexture,
+  mailmanShirtBackTexture,
+  mailmanShirtSideTexture,
   mailmanArmTexture,
   mailmanPantsTexture,
   mailmanCapTexture,
@@ -51,12 +53,38 @@ export class Player {
       new THREE.MeshLambertMaterial({ map: steveHairTexture })  // back
     ];
 
-    // Mailman Uniform Materials
-    const shirtMat = new THREE.MeshLambertMaterial({
+    // Mailman Uniform Materials: Distinct front, back, and side textures
+    const shirtFrontMat = new THREE.MeshLambertMaterial({
       map: mailmanShirtTexture,
       emissive: 0x113355,
       emissiveIntensity: 0.25
     });
+    const shirtBackMat = new THREE.MeshLambertMaterial({
+      map: mailmanShirtBackTexture,
+      emissive: 0x113355,
+      emissiveIntensity: 0.25
+    });
+    const shirtSideMat = new THREE.MeshLambertMaterial({
+      map: mailmanShirtSideTexture,
+      emissive: 0x113355,
+      emissiveIntensity: 0.25
+    });
+    const shirtPlainMat = new THREE.MeshLambertMaterial({
+      color: 0x4383b5,
+      emissive: 0x113355,
+      emissiveIntensity: 0.25
+    });
+
+    // BoxGeometry faces: [+X (right), -X (left), +Y (top), -Y (bottom), +Z (front), -Z (back)]
+    const torsoMaterials = [
+      shirtSideMat,  // +X (right side)
+      shirtSideMat,  // -X (left side)
+      shirtPlainMat, // +Y (shoulders/collar)
+      shirtPlainMat, // -Y (waist tuck)
+      shirtFrontMat, // +Z (front: courier badge, collar, buttons, pocket, belt buckle)
+      shirtBackMat   // -Z (back: shoulder yoke, center spine pleat, belt loops, NO buckle)
+    ];
+
     const armMat = new THREE.MeshLambertMaterial({ map: mailmanArmTexture });
     const pantsMat = new THREE.MeshLambertMaterial({ map: mailmanPantsTexture });
 
@@ -66,7 +94,7 @@ export class Player {
 
     // 1. Torso
     const torsoGeo = new THREE.BoxGeometry(0.44, 0.66, 0.24);
-    this.torso = new THREE.Mesh(torsoGeo, shirtMat);
+    this.torso = new THREE.Mesh(torsoGeo, torsoMaterials);
     this.torso.position.y = 0.66 + 0.33; // bottom at y=0.66, center at 0.99
     this.torso.castShadow = true;
     this.torso.receiveShadow = true;

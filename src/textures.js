@@ -410,7 +410,7 @@ export const steveShoeTexture = createPixelTexture((ctx) => {
 
 // --- Mailman Outfit Textures ---
 
-// 1. Mailman Shirt: Postal light blue with white collar, gold courier badge, button placket, and belt
+// 1. Mailman Shirt (Front): Postal light blue with white collar, gold courier badge, button placket, and belt buckle
 export const mailmanShirtTexture = createPixelTexture((ctx) => {
   const noise = createNoise(555);
   const blues = ['#4b8fc4', '#3d7bb0', '#5ca0d3', '#4383b5'];
@@ -457,6 +457,83 @@ export const mailmanShirtTexture = createPixelTexture((ctx) => {
   ctx.fillRect(6, 14, 4, 2);
   ctx.fillStyle = '#22150c';
   ctx.fillRect(7, 14, 2, 2);
+});
+
+// 1b. Mailman Shirt (Back): Postal blue with high collar rim, shoulder yoke seam, back pleat, belt loops, and NO front buckle
+export const mailmanShirtBackTexture = createPixelTexture((ctx) => {
+  const noise = createNoise(556);
+  const blues = ['#4b8fc4', '#3d7bb0', '#5ca0d3', '#4383b5'];
+  for (let x = 0; x < 16; x++) {
+    for (let y = 0; y < 16; y++) {
+      const idx = Math.floor(noise() * blues.length);
+      ctx.fillStyle = blues[idx];
+      ctx.fillRect(x, y, 1, 1);
+    }
+  }
+
+  // Back collar rim
+  ctx.fillStyle = '#326794';
+  ctx.fillRect(5, 0, 6, 1);
+  ctx.fillStyle = '#f0f4f8';
+  ctx.fillRect(6, 0, 4, 1);
+
+  // Horizontal shoulder yoke seam
+  ctx.fillStyle = '#2d5a80';
+  ctx.fillRect(0, 3, 16, 1);
+  ctx.fillStyle = '#5ca0d3';
+  ctx.fillRect(0, 4, 16, 1);
+
+  // Vertical center spine pleat down back
+  ctx.fillStyle = '#326794';
+  ctx.fillRect(7, 4, 1, 10);
+  ctx.fillStyle = '#5ca0d3';
+  ctx.fillRect(8, 4, 1, 10);
+
+  // Subtle postal courier horn emblem on upper yoke
+  ctx.fillStyle = '#ffd700';
+  ctx.fillRect(7, 1, 2, 2);
+
+  // Tailored dart seams
+  ctx.fillStyle = '#3a73a3';
+  ctx.fillRect(3, 5, 1, 8);
+  ctx.fillRect(12, 5, 1, 8);
+
+  // Solid leather belt across back (NO buckle!)
+  ctx.fillStyle = '#3a2314';
+  ctx.fillRect(0, 14, 16, 2);
+
+  // Belt loops
+  ctx.fillStyle = '#4b8fc4';
+  ctx.fillRect(3, 13, 1, 3);
+  ctx.fillRect(7, 13, 1, 3);
+  ctx.fillRect(12, 13, 1, 3);
+
+  // Belt shadow
+  ctx.fillStyle = '#22150c';
+  ctx.fillRect(0, 15, 16, 1);
+});
+
+// 1c. Mailman Shirt (Sides): Postal blue with side seam and continuous belt
+export const mailmanShirtSideTexture = createPixelTexture((ctx) => {
+  const noise = createNoise(557);
+  const blues = ['#4b8fc4', '#3d7bb0', '#5ca0d3', '#4383b5'];
+  for (let x = 0; x < 16; x++) {
+    for (let y = 0; y < 16; y++) {
+      const idx = Math.floor(noise() * blues.length);
+      ctx.fillStyle = blues[idx];
+      ctx.fillRect(x, y, 1, 1);
+    }
+  }
+
+  // Vertical side seam
+  ctx.fillStyle = '#326794';
+  ctx.fillRect(7, 0, 2, 14);
+
+  // Leather belt around waist
+  ctx.fillStyle = '#3a2314';
+  ctx.fillRect(0, 14, 16, 2);
+  ctx.fillStyle = '#22150c';
+  ctx.fillRect(0, 15, 16, 1);
 });
 
 // 2. Mailman Arm: Postal blue shirt sleeve with navy uniform cuff + skin tone

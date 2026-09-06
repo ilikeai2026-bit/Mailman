@@ -2,10 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Minecraft Park Explorer - Envelope Quest</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a1a1a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Mailman - 10-Level Minecraft Courier Quest</title>
   <link rel="stylesheet" href="./src/style.css" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✉️</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📬</text></svg>">
 </head>
 <body>
   <!-- 3D Three.js Game Canvas Container -->
@@ -16,17 +19,22 @@
     <!-- Top Row HUD -->
     <header class="top-hud">
       <div class="top-left-panel">
-        <div class="hud-pill mc-box-dark">
-          <span>📬 LEVEL:</span>
-          <strong id="level-counter" style="color: #40c4ff;">1 / 10</strong>
-        </div>
-        <div class="hud-pill mc-box-dark">
-          <span>✉️ ENVELOPES:</span>
-          <strong id="envelope-counter" style="color: #ffd700;">0 / 5</strong>
-        </div>
-        <div class="hud-pill mc-box-dark" id="timer-pill">
-          <span>⏱️ TIME:</span>
-          <span id="game-timer" style="color: #69f0ae;">01:30</span>
+        <div class="top-pills-row">
+          <div class="hud-pill mc-box-dark">
+            <span>📬</span>
+            <span class="pill-label">LEVEL:</span>
+            <strong id="level-counter" style="color: #40c4ff;">1 / 10</strong>
+          </div>
+          <div class="hud-pill mc-box-dark">
+            <span>✉️</span>
+            <span class="pill-label">ENVELOPES:</span>
+            <strong id="envelope-counter" style="color: #ffd700;">0 / 5</strong>
+          </div>
+          <div class="hud-pill mc-box-dark" id="timer-pill">
+            <span>⏱️</span>
+            <span class="pill-label">TIME:</span>
+            <span id="game-timer" style="color: #69f0ae;">02:30</span>
+          </div>
         </div>
         <div class="hud-pill mc-box-dark jukebox-pill" id="jukebox-pill" title="Click to skip to next BLACKPINK track (or press N)">
           <span class="jukebox-icon">🎵</span>
@@ -47,7 +55,7 @@
 
       <!-- Radar / Compass pointing to nearest uncollected envelope -->
       <div class="radar-panel mc-box-dark">
-        <span style="font-size: 10px; color: #aaaaaa;">NEAREST ENVELOPE</span>
+        <span class="radar-title" style="font-size: 10px; color: #aaaaaa;">NEAREST ENVELOPE</span>
         <div class="radar-content">
           <div id="radar-arrow">
             <svg viewBox="0 0 24 24">
@@ -61,13 +69,13 @@
       <!-- Top Right: Minimap and Utilities -->
       <div class="top-right-panel">
         <div class="action-buttons">
-          <button id="view-toggle-btn" class="mc-btn" title="Toggle 3rd Person / Isometric (V)">🎥 3rd Person</button>
+          <button id="view-toggle-btn" class="mc-btn" title="Toggle 3rd Person / Isometric (V)">🎥 <span class="btn-label">3rd Person</span></button>
           <button id="zoom-in-btn" class="mc-btn" title="Zoom In">🔍+</button>
           <button id="zoom-out-btn" class="mc-btn" title="Zoom Out">🔍-</button>
-          <button id="rotate-cam-btn" class="mc-btn" title="Rotate Camera (Q/E)">🔄 Rotate</button>
-          <button id="next-track-btn" class="mc-btn" title="Next BLACKPINK Song (N)">⏭️ Next</button>
+          <button id="rotate-cam-btn" class="mc-btn" title="Rotate Camera (Q/E)">🔄 <span class="btn-label">Rotate</span></button>
+          <button id="next-track-btn" class="mc-btn" title="Next BLACKPINK Song (N)">⏭️ <span class="btn-label">Next</span></button>
           <button id="mute-btn" class="mc-btn" title="Mute / Unmute Audio (M)">🔊</button>
-          <button id="voice-btn" class="mc-btn" title="Toggle Voice Recognition">🎙️ Voice</button>
+          <button id="voice-btn" class="mc-btn" title="Toggle Voice Recognition">🎙️ <span class="btn-label">Voice</span></button>
         </div>
         <div class="minimap-wrapper">
           <div class="minimap-container">

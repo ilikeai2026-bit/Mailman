@@ -1,5 +1,15 @@
 import { sound } from './audio.js';
 
+export function detectMobilePhone(customUA = null, customWidth = null) {
+  if (typeof window === 'undefined' && customUA === null && customWidth === null) return false;
+  const ua = customUA !== null ? customUA : (typeof navigator !== 'undefined' ? (navigator.userAgent || navigator.vendor || (typeof window !== 'undefined' && window.opera) || '') : '');
+  const mobileRegex = /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i;
+  const isTouch = typeof window !== 'undefined' ? (('ontouchstart' in window) || (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0)) : false;
+  const width = customWidth !== null ? customWidth : (typeof window !== 'undefined' ? window.innerWidth : 1200);
+  const isSmallScreen = width <= 840;
+  return mobileRegex.test(ua) || (isTouch && isSmallScreen);
+}
+
 export class UIManager {
   constructor(game) {
     this.game = game;
@@ -80,8 +90,26 @@ export class UIManager {
       this.showSongToast(track);
     });
 
+    this.isMobile = detectMobilePhone();
+    this.checkMobileMode();
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', () => this.checkMobileMode());
+      window.addEventListener('orientationchange', () => {
+        setTimeout(() => this.checkMobileMode(), 120);
+      });
+    }
+
     this.setupEventListeners();
     this.setupVoiceRecognition();
+  }
+
+  checkMobileMode() {
+    this.isMobile = detectMobilePhone();
+    if (typeof document !== 'undefined') {
+      document.body.classList.toggle('is-mobile', this.isMobile);
+    }
+    this.updateCameraModeUI(this.game ? this.game.cameraMode : 'third-person');
   }
 
   updateTrackInfo(track) {
@@ -105,7 +133,13 @@ export class UIManager {
 
   updateCameraModeUI(mode) {
     if (this.viewToggleBtn) {
-      this.viewToggleBtn.textContent = mode === 'third-person' ? '🎥 3rd Person' : '🎥 Isometric';
+      const label = mode === 'third-person' ? (this.isMobile ? '3P' : '3rd Person') : (this.isMobile ? 'Iso' : 'Isometric');
+      const labelEl = this.viewToggleBtn.querySelector('.btn-label');
+      if (labelEl) {
+        labelEl.textContent = label;
+      } else {
+        this.viewToggleBtn.textContent = `🎥 ${label}`;
+      }
       this.viewToggleBtn.title = `Current: ${mode}. Click or press V to switch view`;
     }
   }
@@ -527,24 +561,89 @@ export class UIManager {
       });
     }
 
-    // Virtual D-pad for mobile / touch
+    // Virtual D-pad for mobile / touch with multi-touch and thumb gliding
+    const dpadContainer = document.querySelector('.dpad-container');
     const dpadButtons = document.querySelectorAll('.dpad-btn');
-    dpadButtons.forEach(btn => {
-      const dir = btn.dataset.dir;
-      const activate = (e) => {
-        e.preventDefault();
-        this.game.setVirtualInput(dir, true);
-      };
-      const deactivate = (e) => {
-        e.preventDefault();
+    let activeTouchId = null;
+
+    const setDirection = (targetDir) => {
+      ['up', 'down', 'left', 'right'].forEach(dir => {
+        const shouldBeActive = (dir === targetDir);
+        this.game.setVirtualInput(dir, shouldBeActive);
+        const btn = document.querySelector(`.dpad-btn[data-dir="${dir}"]`);
+        if (btn) {
+          btn.classList.toggle('active', shouldBeActive);
+        }
+      });
+    };
+
+    const clearAllDpad = () => {
+      ['up', 'down', 'left', 'right'].forEach(dir => {
         this.game.setVirtualInput(dir, false);
+        const btn = document.querySelector(`.dpad-btn[data-dir="${dir}"]`);
+        if (btn) {
+          btn.classList.remove('active');
+        }
+      });
+    };
+
+    if (dpadContainer) {
+      dpadContainer.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const touch = e.changedTouches[0];
+        activeTouchId = touch.identifier;
+        const elem = document.elementFromPoint(touch.clientX, touch.clientY);
+        const btn = elem ? elem.closest('.dpad-btn') : null;
+        if (btn && btn.dataset.dir) {
+          setDirection(btn.dataset.dir);
+        }
+      }, { passive: false });
+
+      dpadContainer.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          const touch = e.changedTouches[i];
+          if (touch.identifier === activeTouchId) {
+            const elem = document.elementFromPoint(touch.clientX, touch.clientY);
+            const btn = elem ? elem.closest('.dpad-btn') : null;
+            if (btn && btn.dataset.dir) {
+              setDirection(btn.dataset.dir);
+            } else {
+              clearAllDpad();
+            }
+            break;
+          }
+        }
+      }, { passive: false });
+
+      const handleTouchEnd = (e) => {
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          if (e.changedTouches[i].identifier === activeTouchId) {
+            activeTouchId = null;
+            clearAllDpad();
+            break;
+          }
+        }
       };
 
-      btn.addEventListener('touchstart', activate, { passive: false });
-      btn.addEventListener('touchend', deactivate, { passive: false });
-      btn.addEventListener('mousedown', activate);
-      btn.addEventListener('mouseup', deactivate);
-      btn.addEventListener('mouseleave', deactivate);
+      dpadContainer.addEventListener('touchend', handleTouchEnd, { passive: false });
+      dpadContainer.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+    }
+
+    // Mouse clicks for desktop
+    dpadButtons.forEach(btn => {
+      const dir = btn.dataset.dir;
+      btn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        setDirection(dir);
+      });
+      btn.addEventListener('mouseup', (e) => {
+        e.preventDefault();
+        clearAllDpad();
+      });
+      btn.addEventListener('mouseleave', () => {
+        clearAllDpad();
+      });
     });
   }
 

@@ -2,11 +2,14 @@
 import { LEVEL_TIMERS } from '../src/main.js';
 import {
   mailmanShirtTexture,
+  mailmanShirtBackTexture,
+  mailmanShirtSideTexture,
   mailmanPantsTexture,
   mailmanArmTexture,
   mailmanCapTexture,
   mailmanBagTexture
 } from '../src/textures.js';
+import { detectMobilePhone } from '../src/ui.js';
 
 console.log('--- Testing 10-Level Mailman Campaign System ---');
 
@@ -16,15 +19,15 @@ if (!Array.isArray(LEVEL_TIMERS) || LEVEL_TIMERS.length !== 10) {
   process.exit(1);
 }
 
-const expectedTimers = [90, 85, 80, 75, 70, 65, 60, 50, 40, 30];
+const expectedTimers = [150, 135, 120, 110, 100, 90, 80, 70, 60, 50];
 LEVEL_TIMERS.forEach((timer, idx) => {
   if (timer !== expectedTimers[idx]) {
     console.error(`FAIL: Level ${idx + 1} timer expected ${expectedTimers[idx]}s, got ${timer}s`);
     process.exit(1);
   }
 });
-console.log('✓ Verified 10 Level Timers correctly configured: [90s, 85s, 80s, 75s, 70s, 65s, 60s, 50s, 40s, 30s]');
-console.log('✓ Level 1 starts at 90s, Level 10 ends at 30s');
+console.log('✓ Verified 10 Level Timers correctly configured: [150s, 135s, 120s, 110s, 100s, 90s, 80s, 70s, 60s, 50s]');
+console.log('✓ Level 1 starts at 150s, Level 10 ends at 50s');
 
 // 2. Simulate Countdown Timer & Delta Time Step
 class MockCampaignGame {
@@ -107,16 +110,16 @@ class MockCampaignGame {
 
 const mockGame = new MockCampaignGame();
 
-// Simulate countdown in Level 1
+// Simulate countdown in Level 1 (starts at 150s)
 mockGame.update(10.0);
-if (mockGame.levelTimeRemaining !== 80.0 || mockGame.levelTimeElapsed !== 10.0) {
+if (mockGame.levelTimeRemaining !== 140.0 || mockGame.levelTimeElapsed !== 10.0) {
   console.error(`FAIL: Timer decrement failed: remaining=${mockGame.levelTimeRemaining}, elapsed=${mockGame.levelTimeElapsed}`);
   process.exit(1);
 }
 console.log('✓ Countdown timer decrements accurately with frame dt');
 
 // Simulate timeout condition
-mockGame.update(85.0); // Total 95s elapsed > 90s
+mockGame.update(145.0); // Total 155s elapsed > 150s
 if (!mockGame.timeoutTriggered || !mockGame.isGameOver || mockGame.isLevelActive) {
   console.error('FAIL: Timeout did not trigger when countdown reached zero!');
   process.exit(1);
@@ -125,11 +128,11 @@ console.log('✓ Timeout accurately halts level when timer expires');
 
 // Simulate retry current level
 mockGame.restartCurrentLevel();
-if (mockGame.currentLevel !== 1 || mockGame.levelTimeRemaining !== 90 || !mockGame.isLevelActive) {
+if (mockGame.currentLevel !== 1 || mockGame.levelTimeRemaining !== 150 || !mockGame.isLevelActive) {
   console.error('FAIL: Level retry did not reset level timer to full duration!');
   process.exit(1);
 }
-console.log('✓ Level restart resets timer to full duration (90s) and restores active state');
+console.log('✓ Level restart resets timer to full duration (150s) and restores active state');
 
 // 3. Simulate Progression through all 10 Levels to Grand Championship Cup
 for (let lvl = 1; lvl <= 10; lvl++) {
@@ -189,11 +192,37 @@ if (!grandShareStr.includes('10 Levels') || !grandShareStr.includes('Championshi
 }
 console.log('✓ Grand victory share link formatted correctly:', grandShareStr);
 
-// 5. Verify Mailman Textures exist
-if (!mailmanShirtTexture || !mailmanPantsTexture || !mailmanArmTexture || !mailmanCapTexture || !mailmanBagTexture) {
+// 5. Verify Distinct Mailman Textures (Front vs Back vs Sides)
+if (!mailmanShirtTexture || !mailmanShirtBackTexture || !mailmanShirtSideTexture || !mailmanPantsTexture || !mailmanArmTexture || !mailmanCapTexture || !mailmanBagTexture) {
   console.error('FAIL: One or more mailman textures are undefined!');
   process.exit(1);
 }
-console.log('✓ Verified Mailman outfit textures: Postal Shirt, Navy Uniform Pants, Uniform Sleeves, Visor Cap & Leather Satchel');
+if (mailmanShirtTexture === mailmanShirtBackTexture) {
+  console.error('FAIL: Front and back mailman shirt textures should be distinct!');
+  process.exit(1);
+}
+console.log('✓ Verified Mailman outfit textures: Distinct Front (badge/buttons/buckle), Back (yoke/seam/belt loops), Sides, Pants, Sleeves, Cap & Satchel');
+
+// 6. Test Mobile Device Detection
+const iphoneUA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148';
+if (!detectMobilePhone(iphoneUA, 390)) {
+  console.error('FAIL: iPhone user agent was not detected as mobile!');
+  process.exit(1);
+}
+console.log('✓ Mobile detection accurately identifies iPhone browser');
+
+const androidUA = 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 Mobile Safari/537.36';
+if (!detectMobilePhone(androidUA, 412)) {
+  console.error('FAIL: Android phone user agent was not detected as mobile!');
+  process.exit(1);
+}
+console.log('✓ Mobile detection accurately identifies Android phone browser');
+
+const desktopUA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36';
+if (detectMobilePhone(desktopUA, 1440)) {
+  console.error('FAIL: Desktop browser falsely identified as mobile!');
+  process.exit(1);
+}
+console.log('✓ Mobile detection accurately differentiates desktop browser');
 
 console.log('\nALL 10-LEVEL MAILMAN CAMPAIGN TESTS PASSED SUCCESSFULLY! ✅');

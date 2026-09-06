@@ -6,8 +6,8 @@ import { EnvelopeManager } from './envelopes.js';
 import { UIManager } from './ui.js';
 import { sound } from './audio.js';
 
-// 10-Level campaign timers in seconds: from 90s down to 30s
-export const LEVEL_TIMERS = [90, 85, 80, 75, 70, 65, 60, 50, 40, 30];
+// 10-Level campaign timers in seconds: from 150s down to 50s in Level 10
+export const LEVEL_TIMERS = [150, 135, 120, 110, 100, 90, 80, 70, 60, 50];
 
 export class Game {
   constructor() {
@@ -18,7 +18,7 @@ export class Game {
     this.currentLevel = 1;
     this.maxLevels = LEVEL_TIMERS.length;
     this.levelTimers = LEVEL_TIMERS;
-    this.levelTotalTime = this.levelTimers[0]; // 90s for Level 1
+    this.levelTotalTime = this.levelTimers[0]; // 150s for Level 1
     this.levelTimeRemaining = this.levelTotalTime;
     this.levelTimeElapsed = 0;
     this.levelStats = [];
@@ -426,7 +426,7 @@ export class Game {
     window.addEventListener('pointerdown', (e) => {
       sound.init();
       const target = e.target;
-      if (target && target.closest && target.closest('#ui-overlay') && !target.classList.contains('dpad-btn')) {
+      if (target && target.closest && target.closest('#ui-overlay')) {
         return;
       }
       this.isPointerDown = true;
