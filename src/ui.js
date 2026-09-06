@@ -1,5 +1,38 @@
 import { sound } from './audio.js';
 
+export const MINIMAP_TILE_COLORS = {
+  0: '#4fa332', // Grass
+  1: '#8a8a8a', // Cobblestone path
+  2: '#aba197', // Gravel path
+  3: '#e27163', // Flowers
+  4: '#2b7cd3', // Water
+  5: '#1f5715', // Hedge
+  6: '#153d10', // Tree
+  7: '#9e6d3d', // Bench
+  8: '#333333', // Fence
+  9: '#ffd54f', // Lamp
+  10: '#ffaa00' // Gate
+};
+
+export function worldToMinimapScreen(playerPos, playerRotY, targetX, targetZ, scale, cx, cy) {
+  const dx = targetX - (playerPos ? playerPos.x : 0);
+  const dz = targetZ - (playerPos ? playerPos.z : 0);
+  const cosH = Math.cos(playerRotY || 0);
+  const sinH = Math.sin(playerRotY || 0);
+
+  // In 3D: heading=0 faces +Z. Turning left increases heading towards +X.
+  // Forward vector: (sinH, cosH)
+  // Right vector: (-cosH, sinH)
+  const right = -dx * cosH + dz * sinH;
+  const fwd = dx * sinH + dz * cosH;
+
+  return {
+    screenX: cx + right * scale,
+    screenY: cy - fwd * scale, // Screen -Y is UP (Forward)
+    distance: Math.hypot(dx, dz)
+  };
+}
+
 export function detectMobilePhone(customUA = null, customWidth = null) {
   if (typeof window === 'undefined' && customUA === null && customWidth === null) return false;
   const ua = customUA !== null ? customUA : (typeof navigator !== 'undefined' ? (navigator.userAgent || navigator.vendor || (typeof window !== 'undefined' && window.opera) || '') : '');
@@ -133,14 +166,14 @@ export class UIManager {
 
   updateCameraModeUI(mode) {
     if (this.viewToggleBtn) {
-      const label = mode === 'third-person' ? (this.isMobile ? '3P' : '3rd Person') : (this.isMobile ? 'Iso' : 'Isometric');
+      const label = mode === 'third-person' ? (this.isMobile ? '3P' : '3rd Person') : (this.isMobile ? 'Top' : 'Top-Down');
       const labelEl = this.viewToggleBtn.querySelector('.btn-label');
       if (labelEl) {
         labelEl.textContent = label;
       } else {
         this.viewToggleBtn.textContent = `🎥 ${label}`;
       }
-      this.viewToggleBtn.title = `Current: ${mode}. Click or press V to switch view`;
+      this.viewToggleBtn.title = `Current: ${mode === 'third-person' ? '3rd Person' : 'Top-Down'}. Click or press V to switch view`;
     }
   }
 
@@ -210,98 +243,222 @@ export class UIManager {
     this.radarDistanceEl.textContent = `${Math.round(nearestInfo.distance)}m away`;
   }
 
-  drawMinimap(map, playerPos, envelopes, playerRotY) {
+  drawMinimap(map, playerPos, envelopes = [], playerRotY = 0) {
     if (!this.minimapCtx) return;
     const ctx = this.minimapCtx;
-    const size = map.size;
-    const canvasSize = this.minimapCanvas.width;
-    const tileSize = canvasSize / size;
+    const canvasSize = this.minimapCanvas.width || 130;
+    const cx = canvasSize / 2;
+    const cy = canvasSize / 2;
+    const radarRadius = Math.floor(canvasSize / 2) - 4; // ~61px
+    const scale = 5.2; // World units to pixels (~11.7 tiles radius visible)
 
+    const px = playerPos ? playerPos.x : 0;
+    const pz = playerPos ? playerPos.z : 0;
+    const rotY = playerRotY || 0;
+
+    // Clear entire canvas
     ctx.clearRect(0, 0, canvasSize, canvasSize);
 
-    // Ocean blue background
-    ctx.fillStyle = '#1a64ad';
+    // --- LAYER 1: ROTATING WORLD TILES (CLIPPED TO RADAR DISC) ---
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, radarRadius - 1, 0, Math.PI * 2);
+    ctx.clip();
+
+    // Ocean blue background for areas outside the park island
+    ctx.fillStyle = '#154374';
     ctx.fillRect(0, 0, canvasSize, canvasSize);
 
-    // 1. Draw tiles
-    for (let z = 0; z < size; z++) {
-      for (let x = 0; x < size; x++) {
-        const type = map.grid[z][x];
-        switch (type) {
-          case 0: // Grass
-            ctx.fillStyle = '#4f9e30';
-            break;
-          case 1: // Cobble
-            ctx.fillStyle = '#888888';
-            break;
-          case 2: // Gravel
-            ctx.fillStyle = '#aba197';
-            break;
-          case 3: // Flowers
-            ctx.fillStyle = '#e27163';
-            break;
-          case 4: // Water
-            ctx.fillStyle = '#2e74c9';
-            break;
-          case 5: // Hedge
-            ctx.fillStyle = '#265717';
-            break;
-          case 6: // Tree
-            ctx.fillStyle = '#1c4912';
-            break;
-          case 7: // Bench
-            ctx.fillStyle = '#9e6d3d';
-            break;
-          case 10: // Gate
-            ctx.fillStyle = '#ffaa00';
-            break;
-          default:
-            ctx.fillStyle = '#444444';
-            break;
+    // Set 2D transformation matrix: Player at center, rotated so player facing is UP
+    const cosH = Math.cos(rotY);
+    const sinH = Math.sin(rotY);
+    const a = -scale * cosH;
+    const b = -scale * sinH;
+    const c = scale * sinH;
+    const d = -scale * cosH;
+    const e = cx + scale * (cosH * px - sinH * pz);
+    const f = cy + scale * (sinH * px + cosH * pz);
+
+    ctx.setTransform(a, b, c, d, e, f);
+
+    // Visible bounding box in grid coordinates (only render visible tiles)
+    const playerGrid = map && map.worldToGrid ? map.worldToGrid(px, pz) : {
+      gx: Math.floor(px - 0.5 + (map ? map.halfSize : 28)),
+      gz: Math.floor(pz - 0.5 + (map ? map.halfSize : 28))
+    };
+    const halfSize = map ? map.halfSize : 28;
+    const mapSize = map ? map.size : 56;
+    const viewTileRadius = Math.ceil((radarRadius / scale) * 1.45); // ~17 tiles
+    const minGX = Math.max(0, playerGrid.gx - viewTileRadius);
+    const maxGX = Math.min(mapSize - 1, playerGrid.gx + viewTileRadius);
+    const minGZ = Math.max(0, playerGrid.gz - viewTileRadius);
+    const maxGZ = Math.min(mapSize - 1, playerGrid.gz + viewTileRadius);
+
+    if (map && map.grid) {
+      for (let gz = minGZ; gz <= maxGZ; gz++) {
+        const row = map.grid[gz];
+        if (!row) continue;
+        const wz = gz - halfSize;
+        for (let gx = minGX; gx <= maxGX; gx++) {
+          const type = row[gx];
+          const wx = gx - halfSize;
+          ctx.fillStyle = MINIMAP_TILE_COLORS[type] || '#4fa332';
+          ctx.fillRect(wx, wz, 1.04, 1.04);
+
+          // Extra detail for tree canopies
+          if (type === 6) {
+            ctx.fillStyle = '#0d2d09';
+            ctx.beginPath();
+            ctx.arc(wx + 0.5, wz + 0.5, 0.42, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
-        ctx.fillRect(x * tileSize, z * tileSize, tileSize + 0.3, tileSize + 0.3);
       }
     }
 
-    // 2. Draw remaining active envelopes
+    ctx.restore(); // Restore back to standard screen coordinates
+
+    // --- LAYER 2: RADAR RANGE RING & CROSSHAIRS ---
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(cx, cy, (radarRadius - 1) * 0.5, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Subtle crosshairs
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - radarRadius + 5);
+    ctx.lineTo(cx, cy + radarRadius - 5);
+    ctx.moveTo(cx - radarRadius + 5, cy);
+    ctx.lineTo(cx + radarRadius - 5, cy);
+    ctx.stroke();
+
+    // --- LAYER 3: ENVELOPES (NEARBY & OFF-SCREEN RADAR BLIPS) ---
     const now = Date.now() * 0.005;
-    envelopes.forEach(env => {
-      if (env.collected) return;
-      const g = map.worldToGrid(env.x, env.z);
-      const px = (g.gx + 0.5) * tileSize;
-      const py = (g.gz + 0.5) * tileSize;
+    const maxRadarDist = radarRadius - 7;
 
-      const pulse = 2.5 + Math.sin(now + env.id) * 0.8;
-      ctx.fillStyle = '#ffeb3b';
-      ctx.beginPath();
-      ctx.arc(px, py, pulse, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#d32f2f';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    });
+    if (Array.isArray(envelopes)) {
+      envelopes.forEach(env => {
+        if (env.collected) return;
+        const screenPos = worldToMinimapScreen(playerPos, rotY, env.x, env.z, scale, cx, cy);
+        const pulse = Math.sin(now + env.id * 1.4);
 
-    // 3. Draw player position & facing indicator
-    const playerGrid = map.worldToGrid(playerPos.x, playerPos.z);
-    const pX = (playerPos.x - (-map.halfSize + 0.5)) * tileSize;
-    const pZ = (playerPos.z - (-map.halfSize + 0.5)) * tileSize;
+        if (screenPos.distance * scale <= maxRadarDist) {
+          // Inside radar circle: draw pulsing golden envelope icon
+          const r = 3.6 + pulse * 0.7;
+
+          // Glow aura
+          ctx.fillStyle = 'rgba(255, 215, 0, 0.35)';
+          ctx.beginPath();
+          ctx.arc(screenPos.screenX, screenPos.screenY, r + 2.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Golden envelope body
+          ctx.fillStyle = '#ffea00';
+          ctx.beginPath();
+          ctx.arc(screenPos.screenX, screenPos.screenY, r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#d32f2f';
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+
+          // Envelope seal / fold
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(screenPos.screenX - 1.2, screenPos.screenY - 1, 2.4, 2);
+        } else {
+          // Outside radar circle: clamp to rim with directional beacon
+          const angle = Math.atan2(screenPos.screenY - cy, screenPos.screenX - cx);
+          const rimX = cx + Math.cos(angle) * maxRadarDist;
+          const rimY = cy + Math.sin(angle) * maxRadarDist;
+
+          const rimPulse = 3.2 + pulse * 0.8;
+          ctx.fillStyle = '#ffea00';
+          ctx.beginPath();
+          ctx.arc(rimX, rimY, rimPulse, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#d32f2f';
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+        }
+      });
+    }
+
+    // --- LAYER 4: PLAYER COURIER ICON AT EXACT CENTER (ALWAYS FACING UP) ---
+    // Translucent forward FOV cone
+    const fovGrad = ctx.createRadialGradient(cx, cy, 2, cx, cy, 26);
+    fovGrad.addColorStop(0, 'rgba(0, 229, 255, 0.45)');
+    fovGrad.addColorStop(1, 'rgba(0, 229, 255, 0.0)');
+    ctx.fillStyle = fovGrad;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, 26, -Math.PI / 2 - 0.42, -Math.PI / 2 + 0.42);
+    ctx.closePath();
+    ctx.fill();
+
+    // Sleek player courier chevron
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 8);       // Front tip pointing UP
+    ctx.lineTo(cx + 5.5, cy + 6); // Bottom right
+    ctx.lineTo(cx, cy + 2.5);     // Inner notch
+    ctx.lineTo(cx - 5.5, cy + 6); // Bottom left
+    ctx.closePath();
+    ctx.fillStyle = '#00e5ff';    // Courier cyan
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';   // White outline
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Center satchel gold dot
+    ctx.fillStyle = '#ffeb3b';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 1.8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // --- LAYER 5: RADAR BEZEL & DYNAMIC COMPASS NORTH MARKER ---
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#222222';
+    ctx.beginPath();
+    ctx.arc(cx, cy, radarRadius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = '#606060';
+    ctx.beginPath();
+    ctx.arc(cx, cy, radarRadius - 1.5, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Dynamic North marker rotated around the rim to match world North (-Z)
+    const northRimDist = radarRadius - 2;
+    const northX = cx - Math.sin(rotY) * northRimDist;
+    const northY = cy + Math.cos(rotY) * northRimDist;
+    const northAngle = Math.atan2(northY - cy, northX - cx);
 
     ctx.save();
-    ctx.translate(pX, pZ);
-    ctx.rotate(playerRotY);
+    ctx.translate(northX, northY);
+    ctx.rotate(northAngle);
 
-    // Player marker: red triangle
-    ctx.fillStyle = '#00e5ff';
+    // Red triangle marker pointing outward along rim
+    ctx.fillStyle = '#ff3333';
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(0, 5);
-    ctx.lineTo(-3.5, -4);
-    ctx.lineTo(3.5, -4);
+    ctx.moveTo(5, 0);         // Tip pointing outward
+    ctx.lineTo(-3, -3.5);     // Top left
+    ctx.lineTo(-1.5, 0);      // Inner notch
+    ctx.lineTo(-3, 3.5);      // Bottom left
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
 
+    // "N" label inside the rim towards center
+    ctx.font = 'bold 8px monospace';
+    ctx.fillStyle = '#ff4444';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('N', -8, 0);
     ctx.restore();
   }
 

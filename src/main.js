@@ -37,12 +37,12 @@ export class Game {
     const width = window.innerWidth || 800;
     const height = window.innerHeight || 600;
     this.aspect = width / height;
-    this.viewSize = 6.0;
-    this.targetViewSize = 6.0;
-    this.minViewSize = 3.5;
-    this.maxViewSize = 11.0;
+    this.viewSize = 7.5;
+    this.targetViewSize = 7.5;
+    this.minViewSize = 4.0;
+    this.maxViewSize = 14.0;
 
-    // 1. Isometric Orthographic Camera
+    // 1. Top-Down / Isometric Orthographic Camera
     this.isoCamera = new THREE.OrthographicCamera(
       -this.viewSize * this.aspect,
       this.viewSize * this.aspect,
@@ -56,9 +56,9 @@ export class Game {
     this.tpCamera = new THREE.PerspectiveCamera(65, this.aspect, 0.1, 1000);
     this.activeCamera = this.tpCamera;
 
-    // Isometric tracking angles
-    this.cameraDistance = 30;
-    this.cameraPitch = 0.6154; // ~35.264° true isometric angle
+    // Top-down tracking angles
+    this.cameraDistance = 32;
+    this.cameraPitch = 1.16; // ~66.5° steep top-down-ish bird's-eye angle
     this.cameraYaw = Math.PI / 4; // 45°
     this.targetCameraYaw = Math.PI / 4;
     this.cameraTarget = new THREE.Vector3();
