@@ -2,9 +2,11 @@ import * as THREE from 'three';
 import {
   steveFaceTexture,
   steveHairTexture,
-  steveShirtTexture,
-  steveArmTexture,
-  stevePantsTexture,
+  mailmanShirtTexture,
+  mailmanArmTexture,
+  mailmanPantsTexture,
+  mailmanCapTexture,
+  mailmanBagTexture,
   steveShoeTexture
 } from './textures.js';
 import { sound } from './audio.js';
@@ -49,13 +51,14 @@ export class Player {
       new THREE.MeshLambertMaterial({ map: steveHairTexture })  // back
     ];
 
+    // Mailman Uniform Materials
     const shirtMat = new THREE.MeshLambertMaterial({
-      map: steveShirtTexture,
-      emissive: 0x0088cc,
-      emissiveIntensity: 0.35
+      map: mailmanShirtTexture,
+      emissive: 0x113355,
+      emissiveIntensity: 0.25
     });
-    const armMat = new THREE.MeshLambertMaterial({ map: steveArmTexture });
-    const pantsMat = new THREE.MeshLambertMaterial({ map: stevePantsTexture });
+    const armMat = new THREE.MeshLambertMaterial({ map: mailmanArmTexture });
+    const pantsMat = new THREE.MeshLambertMaterial({ map: mailmanPantsTexture });
 
     // Inner wrapper for bobbing
     this.innerGroup = new THREE.Group();
@@ -69,6 +72,21 @@ export class Player {
     this.torso.receiveShadow = true;
     this.innerGroup.add(this.torso);
 
+    // 1b. Leather Mail Satchel & Crossbody Strap
+    const satchelGeo = new THREE.BoxGeometry(0.14, 0.24, 0.28);
+    const satchelMat = new THREE.MeshLambertMaterial({ map: mailmanBagTexture });
+    this.mailSatchel = new THREE.Mesh(satchelGeo, satchelMat);
+    this.mailSatchel.position.set(0.24, -0.10, 0.03);
+    this.mailSatchel.castShadow = true;
+    this.torso.add(this.mailSatchel);
+
+    const strapGeo = new THREE.BoxGeometry(0.04, 0.68, 0.25);
+    const strapMat = new THREE.MeshLambertMaterial({ color: 0x5a3217 });
+    const strap = new THREE.Mesh(strapGeo, strapMat);
+    strap.position.set(0, 0.02, 0.01);
+    strap.rotation.z = -0.58;
+    this.torso.add(strap);
+
     // 2. Head
     const headGeo = new THREE.BoxGeometry(0.44, 0.44, 0.44);
     this.head = new THREE.Mesh(headGeo, headMaterials);
@@ -76,6 +94,26 @@ export class Player {
     this.head.castShadow = true;
     this.head.receiveShadow = true;
     this.innerGroup.add(this.head);
+
+    // 2b. 3D Mailman Visor Cap & Gold Badge
+    const capCrownGeo = new THREE.BoxGeometry(0.46, 0.13, 0.46);
+    const capCrownMat = new THREE.MeshLambertMaterial({ map: mailmanCapTexture });
+    this.mailCap = new THREE.Mesh(capCrownGeo, capCrownMat);
+    this.mailCap.position.set(0, 0.21, 0);
+    this.head.add(this.mailCap);
+
+    const visorGeo = new THREE.BoxGeometry(0.42, 0.03, 0.16);
+    const visorMat = new THREE.MeshLambertMaterial({ color: 0x111622 });
+    this.mailVisor = new THREE.Mesh(visorGeo, visorMat);
+    this.mailVisor.position.set(0, 0.15, 0.24);
+    this.mailVisor.rotation.x = 0.14;
+    this.head.add(this.mailVisor);
+
+    const badgeGeo = new THREE.BoxGeometry(0.08, 0.08, 0.02);
+    const badgeMat = new THREE.MeshBasicMaterial({ color: 0xffd700 });
+    const badge = new THREE.Mesh(badgeGeo, badgeMat);
+    badge.position.set(0, 0.21, 0.235);
+    this.head.add(badge);
 
     // 3. Left Arm (shoulder pivot)
     this.leftArmPivot = new THREE.Group();

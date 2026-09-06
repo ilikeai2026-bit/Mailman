@@ -6,10 +6,25 @@ import { EnvelopeManager } from './envelopes.js';
 import { UIManager } from './ui.js';
 import { sound } from './audio.js';
 
-class Game {
+// 10-Level campaign timers in seconds: from 90s down to 30s
+export const LEVEL_TIMERS = [90, 85, 80, 75, 70, 65, 60, 50, 40, 30];
+
+export class Game {
   constructor() {
     this.container = document.getElementById('game-container') || document.body;
     this.clock = new THREE.Clock();
+
+    // 10-Level Campaign Configuration
+    this.currentLevel = 1;
+    this.maxLevels = LEVEL_TIMERS.length;
+    this.levelTimers = LEVEL_TIMERS;
+    this.levelTotalTime = this.levelTimers[0]; // 90s for Level 1
+    this.levelTimeRemaining = this.levelTotalTime;
+    this.levelTimeElapsed = 0;
+    this.levelStats = [];
+    this.isLevelActive = true;
+    this.isLevelComplete = false;
+    this.isGameOver = false;
 
     // Scene
     this.scene = new THREE.Scene();
@@ -86,7 +101,8 @@ class Game {
     this.setupParkAndEntities();
 
     this.ui = new UIManager(this);
-    this.ui.startTimer();
+    this.ui.updateLevelHUD(this.currentLevel, this.maxLevels);
+    this.ui.updateCountdownHUD(this.levelTimeRemaining, this.levelTotalTime);
     this.ui.updateEnvelopeHUD(0, 5);
     this.ui.updateCameraModeUI(this.cameraMode);
 
@@ -96,7 +112,7 @@ class Game {
     this.animate = this.animate.bind(this);
     requestAnimationFrame(this.animate);
 
-    console.log('[Game] Minecraft Park Explorer (3rd Person & Big Map) initialized!');
+    console.log('[Game] Minecraft Mailman Courier initialized (10 Levels)!');
   }
 
   setupLights() {
@@ -147,7 +163,7 @@ class Game {
         this.ui.updateEnvelopeHUD(collected, total);
       },
       () => {
-        this.ui.showVictoryModal();
+        this.handleLevelComplete();
       }
     );
 
@@ -157,7 +173,53 @@ class Game {
     this.envelopeManager.spawnEnvelopes(spots);
   }
 
-  restartGame() {
+  handleLevelComplete() {
+    if (!this.isLevelActive) return;
+    this.isLevelActive = false;
+    this.isLevelComplete = true;
+
+    const timeTaken = Math.max(1, Math.round(this.levelTimeElapsed));
+    const timeRemaining = Math.max(0, Math.round(this.levelTimeRemaining));
+
+    this.levelStats.push({
+      level: this.currentLevel,
+      timeTaken,
+      timeRemaining
+    });
+
+    if (this.currentLevel < this.maxLevels) {
+      this.ui.showLevelCompleteModal(this.currentLevel, timeTaken, timeRemaining);
+    } else {
+      // Completed Level 10! Award the Grand Golden Cup!
+      const totalTime = this.levelStats.reduce((sum, stat) => sum + stat.timeTaken, 0);
+      this.ui.showGrandVictoryModal(totalTime, this.levelStats);
+    }
+  }
+
+  handleTimeOut() {
+    if (!this.isLevelActive) return;
+    this.isLevelActive = false;
+    this.isGameOver = true;
+
+    if (sound.playTimeoutSound) {
+      sound.playTimeoutSound();
+    }
+
+    const collected = this.envelopeManager ? this.envelopeManager.collectedCount : 0;
+    this.ui.showTimeoutModal(this.currentLevel, collected, 5);
+  }
+
+  startLevel(levelNum) {
+    this.currentLevel = Math.max(1, Math.min(levelNum, this.maxLevels));
+    this.levelTotalTime = this.levelTimers[this.currentLevel - 1];
+    this.levelTimeRemaining = this.levelTotalTime;
+    this.levelTimeElapsed = 0;
+    this.isLevelActive = true;
+    this.isLevelComplete = false;
+    this.isGameOver = false;
+
+    this.ui.closeAllModals();
+
     // Reset player position
     const spawnWorld = this.map.gridToWorld(this.map.spawnTile.x, this.map.spawnTile.z);
     this.player.reset(spawnWorld.x, spawnWorld.z);
@@ -167,9 +229,31 @@ class Game {
     const spots = this.map.getFiveAccessibleEnvelopeSpots();
     this.envelopeManager.spawnEnvelopes(spots);
 
-    // Reset UI & Timer
+    // Reset UI
+    this.ui.updateLevelHUD(this.currentLevel, this.maxLevels);
     this.ui.updateEnvelopeHUD(0, 5);
-    this.ui.startTimer();
+    this.ui.updateCountdownHUD(this.levelTimeRemaining, this.levelTotalTime);
+  }
+
+  nextLevel() {
+    if (this.currentLevel < this.maxLevels) {
+      this.startLevel(this.currentLevel + 1);
+    } else {
+      this.restartCampaign();
+    }
+  }
+
+  restartCurrentLevel() {
+    this.startLevel(this.currentLevel);
+  }
+
+  restartCampaign() {
+    this.levelStats = [];
+    this.startLevel(1);
+  }
+
+  restartGame() {
+    this.restartCampaign();
   }
 
   rotateCamera() {
@@ -501,24 +585,43 @@ class Game {
     const dt = Math.min(this.clock.getDelta(), 0.1);
     const elapsed = this.clock.getElapsedTime();
 
-    // 1. Process movement
-    if (this.cameraMode === 'third-person') {
-      const up = this.keys.up || this.virtualInput.up ? 1 : 0;
-      const down = this.keys.down || this.virtualInput.down ? 1 : 0;
-      const left = this.keys.left || this.virtualInput.left ? 1 : 0;
-      const right = this.keys.right || this.virtualInput.right ? 1 : 0;
+    // 0. Update Level Countdown Timer
+    if (this.isLevelActive) {
+      this.levelTimeRemaining -= dt;
+      this.levelTimeElapsed += dt;
 
-      const throttle = up - down; // Forward (+1) / Backward (-1)
-      const turn = left - right;   // Turn Left (+1) / Turn Right (-1)
+      if (this.levelTimeRemaining <= 0) {
+        this.levelTimeRemaining = 0;
+        this.handleTimeOut();
+      }
 
-      this.player.update(dt, { throttle, turn }, this.map, this.cameraMode);
+      this.ui.updateCountdownHUD(this.levelTimeRemaining, this.levelTotalTime);
+    }
+
+    // 1. Process movement only if level is active
+    if (this.isLevelActive) {
+      if (this.cameraMode === 'third-person') {
+        const up = this.keys.up || this.virtualInput.up ? 1 : 0;
+        const down = this.keys.down || this.virtualInput.down ? 1 : 0;
+        const left = this.keys.left || this.virtualInput.left ? 1 : 0;
+        const right = this.keys.right || this.virtualInput.right ? 1 : 0;
+
+        const throttle = up - down; // Forward (+1) / Backward (-1)
+        const turn = left - right;   // Turn Left (+1) / Turn Right (-1)
+
+        this.player.update(dt, { throttle, turn }, this.map, this.cameraMode);
+      } else {
+        const moveDir = this.calculateMovementDirection();
+        this.player.update(dt, { moveDir }, this.map, this.cameraMode);
+      }
     } else {
-      const moveDir = this.calculateMovementDirection();
-      this.player.update(dt, { moveDir }, this.map, this.cameraMode);
+      // Idle player if modal / timeout is showing
+      this.player.update(dt, { throttle: 0, turn: 0, moveDir: { x: 0, z: 0 } }, this.map, this.cameraMode);
     }
 
     // 2. Update envelopes & particles
-    this.envelopeManager.update(dt, elapsed, this.player.position);
+    const activePlayerPos = this.isLevelActive ? this.player.position : { x: 99999, y: 0, z: 99999 };
+    this.envelopeManager.update(dt, elapsed, activePlayerPos);
 
     // 2b. Update ocean waves, drifting clouds, and boats
     if (this.environment) {
@@ -558,8 +661,10 @@ function startGame() {
   }
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', startGame);
-} else {
-  startGame();
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startGame);
+  } else {
+    startGame();
+  }
 }

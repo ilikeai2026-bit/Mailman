@@ -1325,6 +1325,33 @@ export class SoundController {
       osc.stop(now + note.t + note.d + 0.05);
     });
   }
+
+  playTimeoutSound() {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx || !this.sfxGain) return;
+
+    const now = this.ctx.currentTime;
+    const tones = [
+      { freq: 440, time: 0.0, dur: 0.18 },
+      { freq: 370, time: 0.18, dur: 0.18 },
+      { freq: 311, time: 0.36, dur: 0.18 },
+      { freq: 233, time: 0.54, dur: 0.45 }
+    ];
+
+    tones.forEach(t => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(t.freq, now + t.time);
+      gain.gain.setValueAtTime(0.2, now + t.time);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + t.time + t.dur);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(now + t.time);
+      osc.stop(now + t.time + t.dur + 0.05);
+    });
+  }
 }
 
 export const sound = new SoundController();

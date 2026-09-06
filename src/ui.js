@@ -5,14 +5,43 @@ export class UIManager {
     this.game = game;
 
     // Elements
+    this.levelCounterEl = document.getElementById('level-counter');
+    this.timerPillEl = document.getElementById('timer-pill');
     this.envelopeSlots = document.querySelectorAll('.envelope-slot');
     this.counterEl = document.getElementById('envelope-counter');
     this.timerEl = document.getElementById('game-timer');
     this.radarArrowEl = document.getElementById('radar-arrow');
     this.radarDistanceEl = document.getElementById('radar-distance');
+
+    // Modals & Dialogs
     this.winDialog = document.getElementById('win-dialog');
     this.winStatsEl = document.getElementById('win-stats');
+
+    this.levelCompleteDialog = document.getElementById('level-complete-dialog');
+    this.levelWinTitleEl = document.getElementById('level-win-title');
+    this.levelStatsEl = document.getElementById('level-stats');
+    this.nextLevelBtn = document.getElementById('next-level-btn');
+    this.shareProgressBtn = document.getElementById('share-progress-btn');
+
+    this.grandVictoryDialog = document.getElementById('grand-victory-dialog');
+    this.grandStatsEl = document.getElementById('grand-stats');
+    this.grandShareBtn = document.getElementById('grand-share-btn');
     this.playAgainBtn = document.getElementById('play-again-btn');
+
+    this.timeoutDialog = document.getElementById('timeout-dialog');
+    this.timeoutStatsEl = document.getElementById('timeout-stats');
+    this.retryLevelBtn = document.getElementById('retry-level-btn');
+
+    // Share Toast Notification
+    this.shareToast = document.getElementById('share-toast');
+    this.shareToastMsg = document.getElementById('share-toast-msg');
+    this.shareToastTimeout = null;
+
+    // Track completed metrics for sharing
+    this.lastCompletedLevel = 1;
+    this.lastTimeTaken = 0;
+    this.lastTotalTime = 0;
+
     this.muteBtn = document.getElementById('mute-btn');
     this.zoomInBtn = document.getElementById('zoom-in-btn');
     this.zoomOutBtn = document.getElementById('zoom-out-btn');
@@ -81,26 +110,32 @@ export class UIManager {
     }
   }
 
-  startTimer() {
-    this.timerStartTime = Date.now();
-    this.elapsedSeconds = 0;
-    if (this.timerInterval) clearInterval(this.timerInterval);
+  updateLevelHUD(level, maxLevels) {
+    if (this.levelCounterEl) {
+      this.levelCounterEl.textContent = `${level} / ${maxLevels}`;
+    }
+  }
 
-    this.timerInterval = setInterval(() => {
-      this.elapsedSeconds = Math.floor((Date.now() - this.timerStartTime) / 1000);
-      const mins = String(Math.floor(this.elapsedSeconds / 60)).padStart(2, '0');
-      const secs = String(this.elapsedSeconds % 60).padStart(2, '0');
-      if (this.timerEl) {
-        this.timerEl.textContent = `${mins}:${secs}`;
+  updateCountdownHUD(secondsRemaining, totalSeconds) {
+    const clamped = Math.max(0, Math.ceil(secondsRemaining));
+    const mins = String(Math.floor(clamped / 60)).padStart(2, '0');
+    const secs = String(clamped % 60).padStart(2, '0');
+    if (this.timerEl) {
+      this.timerEl.textContent = `${mins}:${secs}`;
+      if (clamped <= 15 && clamped > 0) {
+        this.timerEl.classList.add('timer-urgent');
+      } else {
+        this.timerEl.classList.remove('timer-urgent');
       }
-    }, 500);
+    }
+  }
+
+  startTimer() {
+    // Kept for backward compatibility
   }
 
   stopTimer() {
-    if (this.timerInterval) {
-      clearInterval(this.timerInterval);
-      this.timerInterval = null;
-    }
+    // Kept for backward compatibility
   }
 
   updateEnvelopeHUD(collected, total) {
@@ -236,31 +271,207 @@ export class UIManager {
     ctx.restore();
   }
 
-  showVictoryModal() {
-    this.stopTimer();
-    const mins = Math.floor(this.elapsedSeconds / 60);
-    const secs = this.elapsedSeconds % 60;
-    const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs} seconds`;
+  showLevelCompleteModal(level, timeTaken, timeRemaining) {
+    this.lastCompletedLevel = level;
+    this.lastTimeTaken = timeTaken;
 
-    if (this.winStatsEl) {
-      this.winStatsEl.innerHTML = `
-        <div class="stat-row"><span>Envelopes Found:</span> <strong>5 / 5</strong></div>
-        <div class="stat-row"><span>Time Elapsed:</span> <strong>${timeStr}</strong></div>
-        <div class="stat-row"><span>Park Explored:</span> <strong>100%</strong></div>
+    if (this.levelWinTitleEl) {
+      this.levelWinTitleEl.textContent = `LEVEL ${level} COMPLETE!`;
+    }
+
+    if (this.levelStatsEl) {
+      this.levelStatsEl.innerHTML = `
+        <div class="stat-row"><span>Level Completed:</span> <strong>${level} / 10</strong></div>
+        <div class="stat-row"><span>Envelopes Delivered:</span> <strong>5 / 5</strong></div>
+        <div class="stat-row"><span>Delivery Time:</span> <strong>${timeTaken}s</strong></div>
+        <div class="stat-row"><span>Time Remaining:</span> <strong>${timeRemaining}s</strong></div>
       `;
     }
 
-    if (this.winDialog) {
-      this.winDialog.showModal();
+    this.closeAllModals();
+    if (this.levelCompleteDialog) {
+      this.levelCompleteDialog.showModal();
     }
   }
 
+  showGrandVictoryModal(totalTime, levelStats) {
+    this.lastTotalTime = totalTime;
+
+    if (this.grandStatsEl) {
+      const mins = Math.floor(totalTime / 60);
+      const secs = totalTime % 60;
+      const formattedTime = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+
+      this.grandStatsEl.innerHTML = `
+        <div class="stat-row"><span>All Levels Conquered:</span> <strong>10 / 10</strong></div>
+        <div class="stat-row"><span>Total Mail Delivered:</span> <strong>50 Letters</strong></div>
+        <div class="stat-row"><span>Grand Delivery Time:</span> <strong>${formattedTime} (${totalTime}s)</strong></div>
+        <div class="stat-row"><span>Championship Reward:</span> <strong style="color: #ffd700;">Grand Golden Cup 🏆</strong></div>
+      `;
+    }
+
+    this.closeAllModals();
+    if (this.grandVictoryDialog) {
+      this.grandVictoryDialog.showModal();
+    }
+  }
+
+  showTimeoutModal(level, collected, total) {
+    if (this.timeoutStatsEl) {
+      this.timeoutStatsEl.innerHTML = `
+        <div class="stat-row"><span>Level Attempted:</span> <strong>Level ${level} / 10</strong></div>
+        <div class="stat-row"><span>Letters Delivered:</span> <strong>${collected} / ${total}</strong></div>
+        <div class="stat-row"><span>Status:</span> <strong style="color: #e53935;">Time Expired (00:00)</strong></div>
+      `;
+    }
+
+    this.closeAllModals();
+    if (this.timeoutDialog) {
+      this.timeoutDialog.showModal();
+    }
+  }
+
+  closeAllModals() {
+    if (this.levelCompleteDialog && this.levelCompleteDialog.open) {
+      this.levelCompleteDialog.close();
+    }
+    if (this.grandVictoryDialog && this.grandVictoryDialog.open) {
+      this.grandVictoryDialog.close();
+    }
+    if (this.timeoutDialog && this.timeoutDialog.open) {
+      this.timeoutDialog.close();
+    }
+    if (this.winDialog && this.winDialog.open) {
+      this.winDialog.close();
+    }
+  }
+
+  showShareToast(message) {
+    if (!this.shareToast) return;
+    if (this.shareToastMsg) {
+      this.shareToastMsg.textContent = message || 'Delivery record copied to clipboard! Share it with friends!';
+    }
+    this.shareToast.classList.add('show');
+    if (this.shareToastTimeout) clearTimeout(this.shareToastTimeout);
+    this.shareToastTimeout = setTimeout(() => {
+      if (this.shareToast) this.shareToast.classList.remove('show');
+    }, 3200);
+  }
+
+  async shareProgress(level, timeTaken) {
+    const url = 'https://ilikeai2026-bit.github.io/Mailman/';
+    const shareText = `📬 I finished Level ${level} of Mailman in ${timeTaken}s! Can you beat my time? Play here: ${url}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Mailman - Level ${level} Complete!`,
+          text: shareText,
+          url: url
+        });
+        this.showShareToast('Shared successfully!');
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(shareText);
+        this.showShareToast('Delivery record copied to clipboard! Share it with friends!');
+      } else {
+        const input = document.createElement('textarea');
+        input.value = shareText;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        this.showShareToast('Delivery record copied to clipboard! Share it with friends!');
+      }
+    } catch (e) {
+      console.warn('Share copy failed:', e);
+      this.showShareToast('Link ready: https://ilikeai2026-bit.github.io/Mailman/');
+    }
+  }
+
+  async shareGrandVictory(totalTime) {
+    const url = 'https://ilikeai2026-bit.github.io/Mailman/';
+    const shareText = `🏆 I conquered all 10 Levels of Mailman in ${totalTime}s total and won the Championship Cup! Can you beat my time? Play here: ${url}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Mailman - Ultimate Grand Champion!',
+          text: shareText,
+          url: url
+        });
+        this.showShareToast('Record shared successfully!');
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(shareText);
+        this.showShareToast('Championship record copied to clipboard!');
+      } else {
+        const input = document.createElement('textarea');
+        input.value = shareText;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        this.showShareToast('Championship record copied to clipboard!');
+      }
+    } catch (e) {
+      console.warn('Share copy failed:', e);
+      this.showShareToast('Link ready: https://ilikeai2026-bit.github.io/Mailman/');
+    }
+  }
+
+  showVictoryModal() {
+    this.showLevelCompleteModal(1, 0, 0);
+  }
+
   setupEventListeners() {
-    // Play Again button
+    // Next Level button (Level complete dialog)
+    if (this.nextLevelBtn) {
+      this.nextLevelBtn.addEventListener('click', () => {
+        this.closeAllModals();
+        this.game.nextLevel();
+      });
+    }
+
+    // Share progress button (Level complete dialog)
+    if (this.shareProgressBtn) {
+      this.shareProgressBtn.addEventListener('click', () => {
+        this.shareProgress(this.lastCompletedLevel, this.lastTimeTaken);
+      });
+    }
+
+    // Grand Championship share button (Grand victory dialog)
+    if (this.grandShareBtn) {
+      this.grandShareBtn.addEventListener('click', () => {
+        this.shareGrandVictory(this.lastTotalTime);
+      });
+    }
+
+    // Retry level button (Timeout dialog)
+    if (this.retryLevelBtn) {
+      this.retryLevelBtn.addEventListener('click', () => {
+        this.closeAllModals();
+        this.game.restartCurrentLevel();
+      });
+    }
+
+    // Play Again button (Grand victory & win dialogs)
     if (this.playAgainBtn) {
       this.playAgainBtn.addEventListener('click', () => {
-        if (this.winDialog) this.winDialog.close();
-        this.game.restartGame();
+        this.closeAllModals();
+        this.game.restartCampaign();
       });
     }
 

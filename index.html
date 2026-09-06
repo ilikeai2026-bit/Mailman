@@ -17,12 +17,16 @@
     <header class="top-hud">
       <div class="top-left-panel">
         <div class="hud-pill mc-box-dark">
+          <span>📬 LEVEL:</span>
+          <strong id="level-counter" style="color: #40c4ff;">1 / 10</strong>
+        </div>
+        <div class="hud-pill mc-box-dark">
           <span>✉️ ENVELOPES:</span>
           <strong id="envelope-counter" style="color: #ffd700;">0 / 5</strong>
         </div>
-        <div class="hud-pill mc-box-dark">
+        <div class="hud-pill mc-box-dark" id="timer-pill">
           <span>⏱️ TIME:</span>
-          <span id="game-timer" style="color: #69f0ae;">00:00</span>
+          <span id="game-timer" style="color: #69f0ae;">01:30</span>
         </div>
         <div class="hud-pill mc-box-dark jukebox-pill" id="jukebox-pill" title="Click to skip to next BLACKPINK track (or press N)">
           <span class="jukebox-icon">🎵</span>
@@ -116,18 +120,62 @@
     </footer>
   </div>
 
-  <!-- Victory Dialog Modal -->
-  <dialog id="win-dialog">
+  <!-- Share Confirmation Toast -->
+  <div id="share-toast" class="mc-box-dark share-toast">
+    <span class="toast-icon">📋</span>
+    <span id="share-toast-msg">Delivery record copied to clipboard! Share it with friends!</span>
+  </div>
+
+  <!-- Level Complete Dialog Modal (Levels 1-9) -->
+  <dialog id="level-complete-dialog" class="game-modal">
     <div class="win-modal-card">
-      <div class="win-badge">🏆</div>
-      <h2 class="win-title">PARK EXPLORER VICTORY!</h2>
-      <p class="win-desc">
-        Congratulations! You successfully navigated all the alleys, trees, and gardens to collect all 5 envelopes!
-      </p>
-      <div id="win-stats" class="stats-box">
+      <div class="win-badge">✉️</div>
+      <h2 class="win-title" id="level-win-title">LEVEL 1 COMPLETE!</h2>
+      <p class="win-desc">All 5 letters safely delivered before the clock ran out!</p>
+      <div id="level-stats" class="stats-box">
         <!-- Injected dynamically -->
       </div>
-      <button id="play-again-btn" class="mc-btn">PLAY AGAIN</button>
+      <div class="modal-btn-row">
+        <button id="next-level-btn" class="mc-btn mc-btn-primary">▶ NEXT LEVEL</button>
+        <button id="share-progress-btn" class="mc-btn mc-btn-share">📤 SHARE MY PROGRESS</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Level 10 Grand Championship Victory Dialog with HUGE CUP -->
+  <dialog id="grand-victory-dialog" class="game-modal">
+    <div class="win-modal-card grand-card">
+      <div class="huge-cup-wrapper">
+        <div class="trophy-sparkles">✨ 🌟 ✨</div>
+        <div class="huge-cup">🏆</div>
+        <div class="cup-pedestal">MAILMAN OF THE YEAR</div>
+      </div>
+      <h2 class="win-title gold-shimmer">ULTIMATE MAILMAN CHAMPION!</h2>
+      <p class="win-desc">
+        INCREDIBLE ACHIEVEMENT! You conquered all 10 Delivery Challenges, defeated the timer, and claimed the Grand Golden Cup!
+      </p>
+      <div id="grand-stats" class="stats-box">
+        <!-- Injected dynamically -->
+      </div>
+      <div class="modal-btn-row">
+        <button id="grand-share-btn" class="mc-btn mc-btn-share">📤 SHARE MY RECORD</button>
+        <button id="play-again-btn" class="mc-btn mc-btn-primary">🔄 PLAY FROM LEVEL 1</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Time-Out / Game Over Dialog Modal -->
+  <dialog id="timeout-dialog" class="game-modal">
+    <div class="win-modal-card timeout-card">
+      <div class="win-badge timeout-badge">⏰</div>
+      <h2 class="win-title" style="color: #e53935;">TIME'S UP!</h2>
+      <p class="win-desc">
+        The timer reached zero before all letters were delivered! The neighborhood is waiting.
+      </p>
+      <div id="timeout-stats" class="stats-box">
+        <!-- Injected dynamically -->
+      </div>
+      <button id="retry-level-btn" class="mc-btn mc-btn-danger">🔄 RESTART LEVEL</button>
     </div>
   </dialog>
 

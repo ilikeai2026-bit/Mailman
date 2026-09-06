@@ -407,3 +407,130 @@ export const steveShoeTexture = createPixelTexture((ctx) => {
     }
   }
 });
+
+// --- Mailman Outfit Textures ---
+
+// 1. Mailman Shirt: Postal light blue with white collar, gold courier badge, button placket, and belt
+export const mailmanShirtTexture = createPixelTexture((ctx) => {
+  const noise = createNoise(555);
+  const blues = ['#4b8fc4', '#3d7bb0', '#5ca0d3', '#4383b5'];
+  for (let x = 0; x < 16; x++) {
+    for (let y = 0; y < 16; y++) {
+      const idx = Math.floor(noise() * blues.length);
+      ctx.fillStyle = blues[idx];
+      ctx.fillRect(x, y, 1, 1);
+    }
+  }
+
+  // White uniform collar
+  ctx.fillStyle = '#f0f4f8';
+  ctx.fillRect(5, 0, 6, 2);
+  ctx.fillRect(6, 2, 4, 1);
+
+  // Button placket down center
+  ctx.fillStyle = '#326794';
+  ctx.fillRect(7, 2, 2, 12);
+
+  // Brass buttons
+  ctx.fillStyle = '#ffd700';
+  ctx.fillRect(7, 4, 2, 1);
+  ctx.fillRect(7, 8, 2, 1);
+  ctx.fillRect(7, 12, 2, 1);
+
+  // Left chest golden courier badge / postal horn
+  ctx.fillStyle = '#ffd700';
+  ctx.fillRect(3, 4, 3, 3);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(4, 5, 1, 1);
+
+  // Right chest pocket
+  ctx.fillStyle = '#356e9c';
+  ctx.fillRect(10, 5, 3, 3);
+  ctx.fillStyle = '#2d5a80';
+  ctx.fillRect(10, 5, 3, 1);
+
+  // Leather belt at bottom
+  ctx.fillStyle = '#3a2314';
+  ctx.fillRect(0, 14, 16, 2);
+  // Gold belt buckle
+  ctx.fillStyle = '#ffd700';
+  ctx.fillRect(6, 14, 4, 2);
+  ctx.fillStyle = '#22150c';
+  ctx.fillRect(7, 14, 2, 2);
+});
+
+// 2. Mailman Arm: Postal blue shirt sleeve with navy uniform cuff + skin tone
+export const mailmanArmTexture = createPixelTexture((ctx) => {
+  const noise = createNoise(666);
+  const blues = ['#4b8fc4', '#3d7bb0', '#5ca0d3'];
+  const skinColors = ['#c68b6b', '#bd8262', '#d09575'];
+
+  for (let x = 0; x < 16; x++) {
+    for (let y = 0; y < 16; y++) {
+      if (y < 6) {
+        ctx.fillStyle = blues[Math.floor(noise() * blues.length)];
+      } else if (y < 8) {
+        ctx.fillStyle = '#1e2c3e'; // Dark navy cuff
+      } else {
+        ctx.fillStyle = skinColors[Math.floor(noise() * skinColors.length)];
+      }
+      ctx.fillRect(x, y, 1, 1);
+    }
+  }
+});
+
+// 3. Mailman Pants: Postal navy trousers with side light blue uniform stripe
+export const mailmanPantsTexture = createPixelTexture((ctx) => {
+  const noise = createNoise(777);
+  const navies = ['#1d2838', '#182230', '#223043', '#151c27'];
+  for (let x = 0; x < 16; x++) {
+    for (let y = 0; y < 16; y++) {
+      const idx = Math.floor(noise() * navies.length);
+      ctx.fillStyle = navies[idx];
+      ctx.fillRect(x, y, 1, 1);
+    }
+  }
+  // Light blue side uniform stripe
+  ctx.fillStyle = '#4b8fc4';
+  ctx.fillRect(1, 0, 1, 16);
+  ctx.fillRect(14, 0, 1, 16);
+});
+
+// 4. Mailman Cap: Dark navy cap with gold badge
+export const mailmanCapTexture = createPixelTexture((ctx) => {
+  const noise = createNoise(888);
+  const capNavies = ['#182332', '#141d2a', '#1e2c3e'];
+  for (let x = 0; x < 16; x++) {
+    for (let y = 0; y < 16; y++) {
+      const idx = Math.floor(noise() * capNavies.length);
+      ctx.fillStyle = capNavies[idx];
+      ctx.fillRect(x, y, 1, 1);
+    }
+  }
+  // Gold badge on front
+  ctx.fillStyle = '#ffd700';
+  ctx.fillRect(6, 6, 4, 4);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(7, 7, 2, 2);
+});
+
+// 5. Mailman Leather Satchel: Saddle brown leather with flap and brass buckle
+export const mailmanBagTexture = createPixelTexture((ctx) => {
+  const noise = createNoise(999);
+  const leathers = ['#754422', '#63391b', '#854e28', '#543015'];
+  for (let x = 0; x < 16; x++) {
+    for (let y = 0; y < 16; y++) {
+      const idx = Math.floor(noise() * leathers.length);
+      ctx.fillStyle = leathers[idx];
+      ctx.fillRect(x, y, 1, 1);
+    }
+  }
+  // Flap line
+  ctx.fillStyle = '#42240e';
+  ctx.fillRect(0, 6, 16, 2);
+  // Gold buckle
+  ctx.fillStyle = '#ffd700';
+  ctx.fillRect(6, 5, 4, 4);
+  ctx.fillStyle = '#3a200c';
+  ctx.fillRect(7, 6, 2, 2);
+});

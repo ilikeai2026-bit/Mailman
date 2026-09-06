@@ -525,3 +525,177 @@ dialog#win-dialog::backdrop {
 .win-modal-card .mc-btn:hover {
   background: #66bb6a;
 }
+
+/* Urgent Timer Pulse */
+.timer-urgent {
+  color: #ff3d00 !important;
+  animation: timerPulse 0.5s infinite alternate ease-in-out;
+  text-shadow: 0 0 8px rgba(255, 61, 0, 0.8) !important;
+}
+
+@keyframes timerPulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.15); }
+}
+
+/* Modals */
+dialog.game-modal {
+  margin: auto;
+  border: none;
+  background: transparent;
+  padding: 0;
+  outline: none;
+  max-width: 520px;
+  width: 90%;
+}
+
+dialog.game-modal::backdrop {
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+}
+
+.modal-btn-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.mc-btn-primary {
+  background: #2e7d32 !important;
+  color: #ffffff !important;
+  border-color: #81c784 !important;
+  border-right-color: #1b5e20 !important;
+  border-bottom-color: #1b5e20 !important;
+  text-shadow: 2px 2px 0px #1b5e20 !important;
+  padding: 12px 18px !important;
+  font-size: 12px !important;
+}
+
+.mc-btn-primary:hover {
+  background: #388e3c !important;
+}
+
+.mc-btn-share {
+  background: #0288d1 !important;
+  color: #ffffff !important;
+  border-color: #81d4fa !important;
+  border-right-color: #01579b !important;
+  border-bottom-color: #01579b !important;
+  text-shadow: 2px 2px 0px #01579b !important;
+  padding: 12px 18px !important;
+  font-size: 12px !important;
+}
+
+.mc-btn-share:hover {
+  background: #039be5 !important;
+}
+
+.mc-btn-danger {
+  background: #c62828 !important;
+  color: #ffffff !important;
+  border-color: #ef9a9a !important;
+  border-right-color: #7f0000 !important;
+  border-bottom-color: #7f0000 !important;
+  text-shadow: 2px 2px 0px #7f0000 !important;
+  padding: 12px 20px !important;
+  font-size: 12px !important;
+}
+
+.mc-btn-danger:hover {
+  background: #d32f2f !important;
+}
+
+/* Huge Cup / Level 10 Grand Trophy */
+.grand-card {
+  border-color: #ffd700 !important;
+  box-shadow: 0 0 35px rgba(255, 215, 0, 0.6) !important;
+}
+
+.huge-cup-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  margin-bottom: 5px;
+}
+
+.huge-cup {
+  font-size: 88px;
+  filter: drop-shadow(0 0 20px #ffd700);
+  animation: hugeCupGlow 1.8s infinite alternate ease-in-out;
+}
+
+@keyframes hugeCupGlow {
+  0% { transform: scale(1) rotate(-3deg); filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.6)); }
+  100% { transform: scale(1.12) rotate(3deg); filter: drop-shadow(0 0 35px rgba(255, 215, 0, 1)); }
+}
+
+.trophy-sparkles {
+  font-size: 22px;
+  animation: sparkleTwinkle 1.2s infinite ease-in-out;
+}
+
+@keyframes sparkleTwinkle {
+  0%, 100% { opacity: 0.4; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+.cup-pedestal {
+  background: #2b2b2b;
+  border: 2px solid #ffd700;
+  color: #ffd700;
+  font-size: 9px;
+  padding: 4px 10px;
+  margin-top: -6px;
+  letter-spacing: 1px;
+}
+
+.gold-shimmer {
+  color: #ffd700 !important;
+  text-shadow: 2px 2px 0px #855800, 0 0 12px rgba(255, 215, 0, 0.7) !important;
+}
+
+/* Time Out Card */
+.timeout-card {
+  border-color: #e53935 !important;
+  box-shadow: 0 0 30px rgba(229, 57, 53, 0.5) !important;
+}
+
+.timeout-badge {
+  animation: timeoutShake 0.5s infinite ease-in-out;
+}
+
+@keyframes timeoutShake {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-8deg); }
+  75% { transform: rotate(8deg); }
+}
+
+/* Share Toast */
+.share-toast {
+  position: fixed;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 22px;
+  border: 3px solid #00e5ff;
+  border-right-color: #0088cc;
+  border-bottom-color: #0088cc;
+  box-shadow: 0 6px 20px rgba(0, 229, 255, 0.4);
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 9999;
+  font-size: 11px;
+  line-height: 1.4;
+  background: rgba(20, 20, 20, 0.95);
+}
+
+.share-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
