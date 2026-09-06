@@ -1,0 +1,527 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body, html {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #1a1a1a;
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  color: #ffffff;
+}
+
+#game-container {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+#game-container canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* UI Overlay Layer */
+#ui-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 16px;
+}
+
+/* Common Minecraft GUI Box Styling */
+.mc-box {
+  background: #c6c6c6;
+  border: 4px solid #ffffff;
+  border-right-color: #555555;
+  border-bottom-color: #555555;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  color: #333333;
+  pointer-events: auto;
+}
+
+.mc-box-dark {
+  background: rgba(33, 33, 33, 0.85);
+  backdrop-filter: blur(4px);
+  border: 3px solid #555555;
+  border-right-color: #222222;
+  border-bottom-color: #222222;
+  color: #ffffff;
+  pointer-events: auto;
+  text-shadow: 2px 2px 0px #000000;
+}
+
+/* Top HUD Bar */
+.top-hud {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.top-left-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hud-pill {
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.controls-hint {
+  font-size: 10px;
+  color: #bbbbbb;
+  padding: 6px 10px;
+  line-height: 1.5;
+}
+
+/* BLACKPINK 8-Bit Jukebox Pill */
+.jukebox-pill {
+  border-color: #ff77a9;
+  border-right-color: #992850;
+  border-bottom-color: #992850;
+  box-shadow: 0 0 10px rgba(255, 119, 169, 0.35);
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.2s, background-color 0.2s;
+  pointer-events: auto;
+}
+
+.jukebox-pill:hover {
+  background: rgba(55, 25, 40, 0.9);
+  box-shadow: 0 0 15px rgba(255, 119, 169, 0.65);
+  transform: translateY(-1px);
+}
+
+.jukebox-pill:active {
+  transform: translateY(1px);
+}
+
+.jukebox-icon {
+  font-size: 16px;
+  animation: jukebox-bounce 1.6s infinite ease-in-out;
+}
+
+@keyframes jukebox-bounce {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.15) rotate(6deg); }
+}
+
+.jukebox-info {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Now Playing Toast Notification */
+.song-toast {
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px;
+  border: 3px solid #ff77a9;
+  border-right-color: #771133;
+  border-bottom-color: #771133;
+  box-shadow: 0 4px 18px rgba(255, 119, 169, 0.45);
+  pointer-events: none;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  z-index: 99;
+}
+
+.song-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.song-toast .toast-icon {
+  font-size: 20px;
+}
+
+.song-toast .toast-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.song-toast .toast-label {
+  font-size: 9px;
+  color: #ff99bb;
+  letter-spacing: 1px;
+}
+
+.song-toast .toast-title {
+  font-size: 12px;
+  color: #ffffff;
+  font-weight: bold;
+}
+
+/* Center Compass / Radar */
+.radar-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 16px;
+  gap: 4px;
+}
+
+.radar-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#radar-arrow {
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  transform-origin: center center;
+  transition: transform 0.1s linear;
+}
+
+#radar-arrow svg {
+  width: 100%;
+  height: 100%;
+  fill: #ffd700;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,0.8));
+}
+
+#radar-distance {
+  font-size: 11px;
+  color: #ffd700;
+}
+
+/* Top Right Minimap & Controls */
+.top-right-panel {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.minimap-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.minimap-container {
+  padding: 4px;
+  background: #2b2b2b;
+  border: 3px solid #8b8b8b;
+  border-right-color: #3b3b3b;
+  border-bottom-color: #3b3b3b;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+  border-radius: 4px;
+}
+
+#minimap-canvas {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border: 1px solid #111111;
+  background: #1e3a1e;
+}
+
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  max-width: 460px;
+}
+
+.mc-btn {
+  background: #c6c6c6;
+  border: 3px solid #ffffff;
+  border-right-color: #555555;
+  border-bottom-color: #555555;
+  padding: 7px 11px;
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  color: #222222;
+  transition: background 0.1s, transform 0.05s;
+  pointer-events: auto;
+  text-shadow: 1px 1px 0px #ffffff;
+  white-space: nowrap;
+}
+
+.mc-btn:hover {
+  background: #d8d8d8;
+}
+
+.mc-btn:active {
+  border-color: #555555;
+  border-right-color: #ffffff;
+  border-bottom-color: #ffffff;
+  transform: translateY(2px);
+}
+
+.mc-btn.active {
+  background: #4caf50;
+  color: #ffffff;
+  text-shadow: 1px 1px 0px #000;
+}
+
+#voice-status {
+  font-size: 10px;
+  color: #69f0ae;
+  max-width: 200px;
+  text-align: right;
+  min-height: 14px;
+}
+
+/* Bottom Hotbar (Envelope Collection Slots) */
+.bottom-hud {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  position: relative;
+  width: 100%;
+}
+
+.hotbar-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.hotbar-title {
+  font-size: 12px;
+  color: #ffd700;
+  text-shadow: 2px 2px 0px #000000;
+  letter-spacing: 1px;
+}
+
+.hotbar {
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  background: rgba(40, 40, 40, 0.9);
+  border: 3px solid #777777;
+  border-right-color: #222222;
+  border-bottom-color: #222222;
+}
+
+.envelope-slot {
+  width: 48px;
+  height: 48px;
+  background: #333333;
+  border: 3px solid #1e1e1e;
+  border-right-color: #555555;
+  border-bottom-color: #555555;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  transition: all 0.25s ease;
+}
+
+.envelope-slot .slot-icon {
+  font-size: 20px;
+  opacity: 0.25;
+  filter: grayscale(100%);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.envelope-slot.collected {
+  background: #5d4a17;
+  border-color: #ffd700;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
+}
+
+.envelope-slot.collected .slot-icon {
+  opacity: 1;
+  filter: none;
+  transform: scale(1.15);
+}
+
+.envelope-slot.pulse {
+  animation: slotCollect 0.4s ease-out;
+}
+
+@keyframes slotCollect {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.35) rotate(-5deg); background: #ffea00; }
+  100% { transform: scale(1); }
+}
+
+/* Touch D-Pad for Mobile Controls */
+.dpad-container {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  display: grid;
+  grid-template-columns: repeat(3, 46px);
+  grid-template-rows: repeat(3, 46px);
+  gap: 4px;
+  pointer-events: auto;
+}
+
+.dpad-btn {
+  background: rgba(80, 80, 80, 0.75);
+  border: 2px solid #ffffff;
+  border-right-color: #333333;
+  border-bottom-color: #333333;
+  color: #ffffff;
+  font-size: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 4px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.dpad-btn:active {
+  background: #ffffff;
+  color: #000000;
+}
+
+.dpad-up    { grid-column: 2; grid-row: 1; }
+.dpad-left  { grid-column: 1; grid-row: 2; }
+.dpad-right { grid-column: 3; grid-row: 2; }
+.dpad-down  { grid-column: 2; grid-row: 3; }
+
+/* Hide Dpad on large screens unless touch is used */
+@media (min-width: 1024px) {
+  .dpad-container {
+    opacity: 0.25;
+    transition: opacity 0.2s;
+  }
+  .dpad-container:hover {
+    opacity: 0.9;
+  }
+}
+
+@media (max-width: 1024px) {
+  .top-right-panel {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+  }
+  .action-buttons {
+    max-width: 330px;
+  }
+}
+
+/* Victory Modal Dialog */
+dialog#win-dialog {
+  margin: auto;
+  border: none;
+  background: transparent;
+  padding: 0;
+  outline: none;
+  max-width: 480px;
+  width: 90%;
+}
+
+dialog#win-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+}
+
+.win-modal-card {
+  background: #c6c6c6;
+  border: 6px solid #ffffff;
+  border-right-color: #444444;
+  border-bottom-color: #444444;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+  padding: 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  color: #222222;
+}
+
+.win-title {
+  font-size: 18px;
+  color: #2e7d32;
+  text-shadow: 2px 2px 0px #ffffff;
+  line-height: 1.4;
+}
+
+.win-badge {
+  font-size: 48px;
+  animation: trophyBounce 1s infinite alternate ease-in-out;
+}
+
+@keyframes trophyBounce {
+  from { transform: translateY(0); }
+  to { transform: translateY(-8px); }
+}
+
+.win-desc {
+  font-size: 11px;
+  line-height: 1.6;
+  color: #333333;
+}
+
+.stats-box {
+  background: #8b8b8b;
+  border: 3px solid #373737;
+  border-right-color: #ffffff;
+  border-bottom-color: #ffffff;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #ffffff;
+  text-shadow: 1px 1px 0px #000;
+}
+
+.stat-row strong {
+  color: #ffd700;
+}
+
+.win-modal-card .mc-btn {
+  padding: 14px 20px;
+  font-size: 13px;
+  background: #4caf50;
+  color: #ffffff;
+  text-shadow: 2px 2px 0px #1b5e20;
+  border-color: #81c784;
+  border-right-color: #1b5e20;
+  border-bottom-color: #1b5e20;
+}
+
+.win-modal-card .mc-btn:hover {
+  background: #66bb6a;
+}

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Minecraft Park Explorer - Envelope Quest</title>
+  <link rel="stylesheet" href="./src/style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✉️</text></svg>">
+</head>
+<body>
+  <!-- 3D Three.js Game Canvas Container -->
+  <div id="game-container"></div>
+
+  <!-- HUD & UI Overlay -->
+  <div id="ui-overlay">
+    <!-- Top Row HUD -->
+    <header class="top-hud">
+      <div class="top-left-panel">
+        <div class="hud-pill mc-box-dark">
+          <span>✉️ ENVELOPES:</span>
+          <strong id="envelope-counter" style="color: #ffd700;">0 / 5</strong>
+        </div>
+        <div class="hud-pill mc-box-dark">
+          <span>⏱️ TIME:</span>
+          <span id="game-timer" style="color: #69f0ae;">00:00</span>
+        </div>
+        <div class="hud-pill mc-box-dark jukebox-pill" id="jukebox-pill" title="Click to skip to next BLACKPINK track (or press N)">
+          <span class="jukebox-icon">🎵</span>
+          <div class="jukebox-info">
+            <div id="jukebox-track-name" style="color: #ff77a9; font-weight: bold;">Pink Venom</div>
+            <div id="jukebox-artist" style="font-size: 8px; color: #cccccc; margin-top: 2px;">BLACKPINK · 8-Bit Piano</div>
+          </div>
+        </div>
+        <div class="controls-hint mc-box-dark">
+          🎮 W/S: Forward/Back<br>
+          🔄 A/D: Turn Left/Right<br>
+          🎥 V: 3rd Person / Iso<br>
+          🔄 Q / E or Drag: Look<br>
+          🔍 Scroll: Zoom<br>
+          🎵 N: Next Track | M: Mute
+        </div>
+      </div>
+
+      <!-- Radar / Compass pointing to nearest uncollected envelope -->
+      <div class="radar-panel mc-box-dark">
+        <span style="font-size: 10px; color: #aaaaaa;">NEAREST ENVELOPE</span>
+        <div class="radar-content">
+          <div id="radar-arrow">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 2L4 20l8-4 8 4z"/>
+            </svg>
+          </div>
+          <span id="radar-distance">Searching...</span>
+        </div>
+      </div>
+
+      <!-- Top Right: Minimap and Utilities -->
+      <div class="top-right-panel">
+        <div class="action-buttons">
+          <button id="view-toggle-btn" class="mc-btn" title="Toggle 3rd Person / Isometric (V)">🎥 3rd Person</button>
+          <button id="zoom-in-btn" class="mc-btn" title="Zoom In">🔍+</button>
+          <button id="zoom-out-btn" class="mc-btn" title="Zoom Out">🔍-</button>
+          <button id="rotate-cam-btn" class="mc-btn" title="Rotate Camera (Q/E)">🔄 Rotate</button>
+          <button id="next-track-btn" class="mc-btn" title="Next BLACKPINK Song (N)">⏭️ Next</button>
+          <button id="mute-btn" class="mc-btn" title="Mute / Unmute Audio (M)">🔊</button>
+          <button id="voice-btn" class="mc-btn" title="Toggle Voice Recognition">🎙️ Voice</button>
+        </div>
+        <div class="minimap-wrapper">
+          <div class="minimap-container">
+            <canvas id="minimap-canvas" width="130" height="130"></canvas>
+          </div>
+          <div id="voice-status"></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Now Playing Song Toast Notification -->
+    <div id="song-toast" class="mc-box-dark song-toast">
+      <span class="toast-icon">🎵</span>
+      <div class="toast-content">
+        <span class="toast-label">NOW PLAYING:</span>
+        <span class="toast-title" id="toast-title">BLACKPINK - Pink Venom (8-Bit Piano)</span>
+      </div>
+    </div>
+
+    <!-- Bottom Row HUD: Inventory Hotbar with 5 Envelopes -->
+    <footer class="bottom-hud">
+      <!-- Mobile D-pad -->
+      <div class="dpad-container">
+        <button class="dpad-btn dpad-up" data-dir="up">▲</button>
+        <button class="dpad-btn dpad-left" data-dir="left">◀</button>
+        <button class="dpad-btn dpad-right" data-dir="right">▶</button>
+        <button class="dpad-btn dpad-down" data-dir="down">▼</button>
+      </div>
+
+      <div class="hotbar-container">
+        <div class="hotbar-title">WALK OVER ENVELOPES TO COLLECT</div>
+        <div class="hotbar">
+          <div class="envelope-slot" data-index="0">
+            <span class="slot-icon">✉️</span>
+          </div>
+          <div class="envelope-slot" data-index="1">
+            <span class="slot-icon">✉️</span>
+          </div>
+          <div class="envelope-slot" data-index="2">
+            <span class="slot-icon">✉️</span>
+          </div>
+          <div class="envelope-slot" data-index="3">
+            <span class="slot-icon">✉️</span>
+          </div>
+          <div class="envelope-slot" data-index="4">
+            <span class="slot-icon">✉️</span>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Victory Dialog Modal -->
+  <dialog id="win-dialog">
+    <div class="win-modal-card">
+      <div class="win-badge">🏆</div>
+      <h2 class="win-title">PARK EXPLORER VICTORY!</h2>
+      <p class="win-desc">
+        Congratulations! You successfully navigated all the alleys, trees, and gardens to collect all 5 envelopes!
+      </p>
+      <div id="win-stats" class="stats-box">
+        <!-- Injected dynamically -->
+      </div>
+      <button id="play-again-btn" class="mc-btn">PLAY AGAIN</button>
+    </div>
+  </dialog>
+
+  <!-- Main Game Script -->
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
