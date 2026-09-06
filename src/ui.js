@@ -33,6 +33,24 @@ export function worldToMinimapScreen(playerPos, playerRotY, targetX, targetZ, sc
   };
 }
 
+export const GAME_SHARE_URL = 'https://ilikeai2026-bit.github.io/Mailman/';
+
+export function formatLevelShareMessage(level, timeTaken) {
+  return `📬 I finished Level ${level} of Mailman in ${timeTaken}s! Can you beat my time?`;
+}
+
+export function formatLevelShare(level, timeTaken, url = GAME_SHARE_URL) {
+  return `${formatLevelShareMessage(level, timeTaken)} Play here: ${url}`;
+}
+
+export function formatGrandShareMessage(totalTime) {
+  return `🏆 I conquered all 10 Levels of Mailman in ${totalTime}s total and won the Championship Cup! Can you beat my time?`;
+}
+
+export function formatGrandShare(totalTime, url = GAME_SHARE_URL) {
+  return `${formatGrandShareMessage(totalTime)} Play here: ${url}`;
+}
+
 export function detectMobilePhone(customUA = null, customWidth = null) {
   if (typeof window === 'undefined' && customUA === null && customWidth === null) return false;
   const ua = customUA !== null ? customUA : (typeof navigator !== 'undefined' ? (navigator.userAgent || navigator.vendor || (typeof window !== 'undefined' && window.opera) || '') : '');
@@ -550,14 +568,15 @@ export class UIManager {
   }
 
   async shareProgress(level, timeTaken) {
-    const url = 'https://ilikeai2026-bit.github.io/Mailman/';
-    const shareText = `📬 I finished Level ${level} of Mailman in ${timeTaken}s! Can you beat my time? Play here: ${url}`;
+    const url = GAME_SHARE_URL;
+    const shareMessage = formatLevelShareMessage(level, timeTaken);
+    const fullShareText = formatLevelShare(level, timeTaken, url);
 
     if (navigator.share) {
       try {
         await navigator.share({
           title: `Mailman - Level ${level} Complete!`,
-          text: shareText,
+          text: shareMessage,
           url: url
         });
         this.showShareToast('Shared successfully!');
@@ -569,11 +588,11 @@ export class UIManager {
 
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(shareText);
+        await navigator.clipboard.writeText(fullShareText);
         this.showShareToast('Delivery record copied to clipboard! Share it with friends!');
       } else {
         const input = document.createElement('textarea');
-        input.value = shareText;
+        input.value = fullShareText;
         document.body.appendChild(input);
         input.select();
         document.execCommand('copy');
@@ -582,19 +601,20 @@ export class UIManager {
       }
     } catch (e) {
       console.warn('Share copy failed:', e);
-      this.showShareToast('Link ready: https://ilikeai2026-bit.github.io/Mailman/');
+      this.showShareToast(`Link ready: ${url}`);
     }
   }
 
   async shareGrandVictory(totalTime) {
-    const url = 'https://ilikeai2026-bit.github.io/Mailman/';
-    const shareText = `🏆 I conquered all 10 Levels of Mailman in ${totalTime}s total and won the Championship Cup! Can you beat my time? Play here: ${url}`;
+    const url = GAME_SHARE_URL;
+    const shareMessage = formatGrandShareMessage(totalTime);
+    const fullShareText = formatGrandShare(totalTime, url);
 
     if (navigator.share) {
       try {
         await navigator.share({
           title: 'Mailman - Ultimate Grand Champion!',
-          text: shareText,
+          text: shareMessage,
           url: url
         });
         this.showShareToast('Record shared successfully!');
@@ -606,11 +626,11 @@ export class UIManager {
 
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(shareText);
+        await navigator.clipboard.writeText(fullShareText);
         this.showShareToast('Championship record copied to clipboard!');
       } else {
         const input = document.createElement('textarea');
-        input.value = shareText;
+        input.value = fullShareText;
         document.body.appendChild(input);
         input.select();
         document.execCommand('copy');
@@ -619,7 +639,7 @@ export class UIManager {
       }
     } catch (e) {
       console.warn('Share copy failed:', e);
-      this.showShareToast('Link ready: https://ilikeai2026-bit.github.io/Mailman/');
+      this.showShareToast(`Link ready: ${url}`);
     }
   }
 
@@ -724,6 +744,9 @@ export class UIManager {
     let activeTouchId = null;
 
     const setDirection = (targetDir) => {
+      if (typeof this.game.stopPlayerMovement === 'function') {
+        this.game.stopPlayerMovement();
+      }
       ['up', 'down', 'left', 'right'].forEach(dir => {
         const shouldBeActive = (dir === targetDir);
         this.game.setVirtualInput(dir, shouldBeActive);
@@ -943,18 +966,24 @@ export class UIManager {
       return;
     }
 
-    if (cmd.includes('up') || cmd.includes('forward') || cmd.includes('north')) {
-      this.game.setVirtualInput('up', true);
-      setTimeout(() => this.game.setVirtualInput('up', false), 1200);
-    } else if (cmd.includes('down') || cmd.includes('back') || cmd.includes('south')) {
-      this.game.setVirtualInput('down', true);
-      setTimeout(() => this.game.setVirtualInput('down', false), 1200);
+    if (cmd.includes('forward') || cmd.includes('up') || cmd.includes('go') || cmd.includes('walk') || cmd.includes('straight') || cmd.includes('ahead') || cmd.includes('north')) {
+      if (typeof this.game.movePlayerForward === 'function') {
+        this.game.movePlayerForward(1200);
+      } else {
+        this.game.setVirtualInput('up', true);
+        setTimeout(() => this.game.setVirtualInput('up', false), 1200);
+      }
+    } else if (cmd.includes('down') || cmd.includes('back') || cmd.includes('reverse') || cmd.includes('south')) {
+      if (typeof this.game.movePlayerBackward === 'function') {
+        this.game.movePlayerBackward(1200);
+      } else {
+        this.game.setVirtualInput('down', true);
+        setTimeout(() => this.game.setVirtualInput('down', false), 1200);
+      }
     } else if (cmd.includes('left') || cmd.includes('west')) {
-      this.game.setVirtualInput('left', true);
-      setTimeout(() => this.game.setVirtualInput('left', false), 1200);
+      this.game.turnPlayer90('left');
     } else if (cmd.includes('right') || cmd.includes('east')) {
-      this.game.setVirtualInput('right', true);
-      setTimeout(() => this.game.setVirtualInput('right', false), 1200);
+      this.game.turnPlayer90('right');
     } else if (cmd.includes('stop') || cmd.includes('wait') || cmd.includes('halt')) {
       this.game.clearAllInputs();
     }

@@ -116,4 +116,114 @@ if (player.heading <= 0 || player.position.z <= 0) {
 }
 console.log('✓ Player unified update correctly delegates to updateThirdPerson');
 
-console.log('--- ALL 3RD-PERSON CONTROL TESTS PASSED! ---');
+// 9. Test 90-Degree Voice Turning Commands (only turns 90 degrees)
+player.reset(0, 0); // initial heading = 0 (facing +Z)
+player.turn90('left');
+if (player.turnTargetHeading === null || Math.abs(player.turnTargetHeading - Math.PI / 2) > 0.001) {
+  console.error(`FAIL: Expected turnTargetHeading PI/2 after turn90('left'), got ${player.turnTargetHeading}`);
+  process.exit(1);
+}
+// Simulate frames until turn completes
+for (let i = 0; i < 35; i++) {
+  player.updateThirdPerson(0.016, 0, 0, mockMap);
+}
+if (Math.abs(player.heading - Math.PI / 2) > 0.001 || player.turnTargetHeading !== null) {
+  console.error(`FAIL: Expected heading to reach PI/2 (90 deg left), got ${player.heading}`);
+  process.exit(1);
+}
+console.log('✓ turn90("left") successfully turns player exactly 90 degrees left (+PI/2 rad)');
+
+// Turn 90 degrees right back to 0
+player.turn90('right');
+for (let i = 0; i < 35; i++) {
+  player.updateThirdPerson(0.016, 0, 0, mockMap);
+}
+if (Math.abs(player.heading) > 0.001 || player.turnTargetHeading !== null) {
+  console.error(`FAIL: Expected heading to return to 0 (90 deg right), got ${player.heading}`);
+  process.exit(1);
+}
+console.log('✓ turn90("right") successfully turns player exactly 90 degrees right (0 rad)');
+
+// Turn right again to -PI/2 (facing West)
+player.turn90('right');
+for (let i = 0; i < 35; i++) {
+  player.updateThirdPerson(0.016, 0, 0, mockMap);
+}
+if (Math.abs(player.heading - (-Math.PI / 2)) > 0.001) {
+  console.error(`FAIL: Expected heading to reach -PI/2, got ${player.heading}`);
+  process.exit(1);
+}
+console.log('✓ turn90("right") turns player exactly 90 degrees right to -PI/2 rad (facing West)');
+
+// Turn right once more to PI (facing North)
+player.turn90('right');
+for (let i = 0; i < 35; i++) {
+  player.updateThirdPerson(0.016, 0, 0, mockMap);
+}
+if (Math.abs(Math.abs(player.heading) - Math.PI) > 0.001) {
+  console.error(`FAIL: Expected heading to reach PI/-PI, got ${player.heading}`);
+  process.exit(1);
+}
+console.log('✓ Sequential 90-degree turns accurately cycle through all 4 cardinal directions');
+
+// 10. Test Top-Down Mode: Forward Moves to Player Front (Not Fixed Camera/Screen Direction)
+// Test A: Steve facing East (+X, heading = PI/2)
+player.reset(0, 0);
+player.heading = Math.PI / 2;
+player.targetRotationY = Math.PI / 2;
+player.currentRotationY = Math.PI / 2;
+
+// Move forward in player's front direction: (sin(PI/2), cos(PI/2)) = (1, 0)
+const fwdEast = { x: Math.sin(player.heading), z: Math.cos(player.heading) };
+player.updateIsometric(0.1, fwdEast, mockMap);
+if (player.position.x <= 0 || Math.abs(player.position.z) > 0.001) {
+  console.error(`FAIL: In top-down mode when facing East, forward should advance along +X, got (${player.position.x}, ${player.position.z})`);
+  process.exit(1);
+}
+if (Math.abs(player.heading - Math.PI / 2) > 0.001) {
+  console.error(`FAIL: Player heading should remain facing East, got ${player.heading}`);
+  process.exit(1);
+}
+console.log('✓ Top-down mode: Steve facing East moves forward along +X (player front)');
+
+// Test B: Steve facing South (+Z, heading = 0)
+player.reset(0, 0);
+player.heading = 0;
+player.targetRotationY = 0;
+const fwdSouth = { x: Math.sin(player.heading), z: Math.cos(player.heading) };
+player.updateIsometric(0.1, fwdSouth, mockMap);
+if (player.position.z <= 0 || Math.abs(player.position.x) > 0.001) {
+  console.error(`FAIL: In top-down mode when facing South, forward should advance along +Z, got (${player.position.x}, ${player.position.z})`);
+  process.exit(1);
+}
+console.log('✓ Top-down mode: Steve facing South moves forward along +Z (player front)');
+
+// Test C: Steve facing West (-X, heading = -PI/2)
+player.reset(0, 0);
+player.heading = -Math.PI / 2;
+player.targetRotationY = -Math.PI / 2;
+const fwdWest = { x: Math.sin(player.heading), z: Math.cos(player.heading) };
+player.updateIsometric(0.1, fwdWest, mockMap);
+if (player.position.x >= 0 || Math.abs(player.position.z) > 0.001) {
+  console.error(`FAIL: In top-down mode when facing West, forward should advance along -X, got (${player.position.x}, ${player.position.z})`);
+  process.exit(1);
+}
+console.log('✓ Top-down mode: Steve facing West moves forward along -X (player front)');
+
+// Test D: Top-down reverse steps backward without flipping player heading
+player.reset(0, 0);
+player.heading = Math.PI / 2; // facing East
+player.targetRotationY = Math.PI / 2;
+const revEast = { x: Math.sin(player.heading), z: Math.cos(player.heading), reverse: true };
+player.updateIsometric(0.1, revEast, mockMap);
+if (player.position.x >= 0) {
+  console.error(`FAIL: In top-down mode reverse from East should step along -X, got ${player.position.x}`);
+  process.exit(1);
+}
+if (Math.abs(player.heading - Math.PI / 2) > 0.001) {
+  console.error(`FAIL: In top-down mode reverse should preserve player front heading, got ${player.heading}`);
+  process.exit(1);
+}
+console.log('✓ Top-down mode: Steve steps backward along player back while preserving front heading');
+
+console.log('--- ALL 3RD-PERSON, TOP-DOWN & 90-DEGREE TURN TESTS PASSED! ---');

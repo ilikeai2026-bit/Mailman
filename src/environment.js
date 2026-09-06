@@ -1,5 +1,12 @@
 import * as THREE from 'three';
-import { oceanWaterTexture, sandTexture, woodPlankTexture, cobblestoneTexture } from './textures.js';
+import {
+  oceanWaterTexture,
+  sandTexture,
+  woodPlankTexture,
+  cobblestoneTexture,
+  envelopeTexture,
+  mailmanBagTexture
+} from './textures.js';
 
 export class Environment {
   constructor(scene, parkSize = 56) {
@@ -11,10 +18,12 @@ export class Environment {
     this.oceanTexture = oceanWaterTexture;
     this.oceanTexture2 = null;
     this.boatMeshes = [];
+    this.postmanBoat = null;
 
     this.initOcean();
     this.initIslandCliffs();
     this.initPiers();
+    this.initPostmanBoat();
     this.initDistantIslands();
     this.initClouds();
   }
@@ -197,6 +206,394 @@ export class Environment {
 
       this.scene.add(pierGroup);
     });
+  }
+
+  // =========================================================================
+  // 3b. DOCKED POSTMAN / COURIER BOAT (South Gate Pier)
+  // =========================================================================
+  initPostmanBoat() {
+    const boat = new THREE.Group();
+
+    // Materials
+    const hullWoodMat = new THREE.MeshLambertMaterial({
+      map: woodPlankTexture,
+      color: 0x8a6242 // rich oak/spruce wood tone
+    });
+    const darkWoodMat = new THREE.MeshLambertMaterial({
+      map: woodPlankTexture,
+      color: 0x4a3220 // dark keel / trim
+    });
+    const postalNavyMat = new THREE.MeshLambertMaterial({
+      color: 0x1d3e63 // Postal courier uniform navy
+    });
+    const postalGoldMat = new THREE.MeshLambertMaterial({
+      color: 0xffd13b // Gold courier insignia & trim
+    });
+    const cabinWallMat = new THREE.MeshLambertMaterial({
+      color: 0x2b4c73 // Postal blue cabin siding
+    });
+    const cabinRoofMat = new THREE.MeshLambertMaterial({
+      color: 0x182c44 // Dark navy weather-sealed roof
+    });
+    const glassMat = new THREE.MeshLambertMaterial({
+      color: 0x9ed8f6,
+      transparent: true,
+      opacity: 0.72
+    });
+    const whiteTrimMat = new THREE.MeshLambertMaterial({ color: 0xf5f5f5 });
+    const ironMat = new THREE.MeshLambertMaterial({ color: 0x3d3d3d });
+    const ropeMat = new THREE.MeshLambertMaterial({ color: 0xc8b082 });
+    const fenderMat = new THREE.MeshLambertMaterial({ color: 0x222222 });
+
+    // Mail cargo materials
+    const envelopeMat = new THREE.MeshLambertMaterial({
+      map: envelopeTexture,
+      transparent: true
+    });
+    const bagMat = new THREE.MeshLambertMaterial({
+      map: mailmanBagTexture
+    });
+    const parcelMat1 = new THREE.MeshLambertMaterial({ color: 0xc99c63 }); // Kraft parcel box
+    const parcelMat2 = new THREE.MeshLambertMaterial({ color: 0xb5854e }); // Cardboard crate
+    const sackMat = new THREE.MeshLambertMaterial({ color: 0xddd0b5 });    // Canvas mail sack
+
+    // -----------------------------------------------------------------------
+    // A. HULL & KEEL
+    // -----------------------------------------------------------------------
+    // 1. Keel / Bottom spine
+    const keel = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.35, 4.6), darkWoodMat);
+    keel.position.set(0, -0.4, 0);
+    keel.castShadow = true;
+    boat.add(keel);
+
+    // 2. Main Hull Body (spruce planking)
+    const hull = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.75, 4.4), hullWoodMat);
+    hull.position.set(0, 0.05, 0);
+    hull.castShadow = true;
+    hull.receiveShadow = true;
+    boat.add(hull);
+
+    // 3. Voxel Tapered Bow (stepped voxels narrowing towards front +Z)
+    const bowStep1 = new THREE.Mesh(new THREE.BoxGeometry(1.65, 0.75, 0.8), hullWoodMat);
+    bowStep1.position.set(0, 0.05, 2.5);
+    bowStep1.castShadow = true;
+    boat.add(bowStep1);
+
+    const bowStep2 = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.75, 0.6), hullWoodMat);
+    bowStep2.position.set(0, 0.05, 3.1);
+    bowStep2.castShadow = true;
+    boat.add(bowStep2);
+
+    const bowProw = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.95, 0.4), darkWoodMat);
+    bowProw.position.set(0, 0.18, 3.5);
+    bowProw.castShadow = true;
+    boat.add(bowProw);
+
+    // 4. Stern Transom (squared back -Z)
+    const sternTransom = new THREE.Mesh(new THREE.BoxGeometry(1.95, 0.85, 0.25), darkWoodMat);
+    sternTransom.position.set(0, 0.1, -2.3);
+    sternTransom.castShadow = true;
+    boat.add(sternTransom);
+
+    // "MAIL" Brass Nameplate on Stern
+    const nameplate = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.26, 0.06), postalGoldMat);
+    nameplate.position.set(0, 0.28, -2.45);
+    boat.add(nameplate);
+
+    const mailTextDeco = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.14, 0.08), postalNavyMat);
+    mailTextDeco.position.set(0, 0.28, -2.46);
+    boat.add(mailTextDeco);
+
+    // -----------------------------------------------------------------------
+    // B. COURIER BLUE & GOLD GUNWALE TRIM & FENDERS
+    // -----------------------------------------------------------------------
+    // Port Gunwale (pier side, X = -1.0)
+    const portGunwale = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.25, 4.6), postalNavyMat);
+    portGunwale.position.set(-1.0, 0.5, 0);
+    boat.add(portGunwale);
+
+    const portGoldRail = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 4.6), postalGoldMat);
+    portGoldRail.position.set(-1.0, 0.65, 0);
+    boat.add(portGoldRail);
+
+    // Starboard Gunwale (outer water side, X = +1.0)
+    const stbGunwale = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.25, 4.6), postalNavyMat);
+    stbGunwale.position.set(1.0, 0.5, 0);
+    boat.add(stbGunwale);
+
+    const stbGoldRail = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 4.6), postalGoldMat);
+    stbGoldRail.position.set(1.0, 0.65, 0);
+    boat.add(stbGoldRail);
+
+    // Bow railing angled trim
+    const bowRailLeft = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.22, 1.4), postalNavyMat);
+    bowRailLeft.position.set(-0.6, 0.52, 2.85);
+    bowRailLeft.rotation.y = 0.42;
+    boat.add(bowRailLeft);
+
+    const bowRailRight = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.22, 1.4), postalNavyMat);
+    bowRailRight.position.set(0.6, 0.52, 2.85);
+    bowRailRight.rotation.y = -0.42;
+    boat.add(bowRailRight);
+
+    // Rubber docking bumper fenders along the port gunwale (facing dock)
+    const fenderPositionsZ = [-1.4, 0.1, 1.6];
+    fenderPositionsZ.forEach(fz => {
+      const fender = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.45, 0.35), fenderMat);
+      fender.position.set(-1.12, 0.2, fz);
+      boat.add(fender);
+
+      const cord = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.25, 0.04), ropeMat);
+      cord.position.set(-1.08, 0.48, fz);
+      boat.add(cord);
+    });
+
+    // -----------------------------------------------------------------------
+    // C. WHEELHOUSE CABIN (Aft section, Z = -0.95)
+    // -----------------------------------------------------------------------
+    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.15, 1.9), cabinWallMat);
+    cabin.position.set(0, 0.95, -0.95);
+    cabin.castShadow = true;
+    cabin.receiveShadow = true;
+    boat.add(cabin);
+
+    const cabinRoof = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.16, 2.15), cabinRoofMat);
+    cabinRoof.position.set(0, 1.58, -0.95);
+    cabinRoof.castShadow = true;
+    boat.add(cabinRoof);
+
+    // Front windshield
+    const windshield = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.45, 0.08), glassMat);
+    windshield.position.set(0, 1.15, 0.02);
+    boat.add(windshield);
+
+    const windshieldFrame = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.55, 0.04), whiteTrimMat);
+    windshieldFrame.position.set(0, 1.15, 0.0);
+    boat.add(windshieldFrame);
+
+    // Side windows
+    const portWindow = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.42, 0.8), glassMat);
+    portWindow.position.set(-0.82, 1.15, -0.95);
+    boat.add(portWindow);
+
+    const stbWindow = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.42, 0.8), glassMat);
+    stbWindow.position.set(0.82, 1.15, -0.95);
+    boat.add(stbWindow);
+
+    // Rear window
+    const rearWindow = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.42, 0.08), glassMat);
+    rearWindow.position.set(0, 1.15, -1.92);
+    boat.add(rearWindow);
+
+    // Steering Helm inside cabin
+    const helmStand = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.5, 0.12), darkWoodMat);
+    helmStand.position.set(0, 0.8, -0.3);
+    boat.add(helmStand);
+
+    const helmWheel = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.36, 0.06), postalGoldMat);
+    helmWheel.position.set(0, 1.05, -0.26);
+    boat.add(helmWheel);
+
+    // Lifebuoy ring mounted on cabin exterior
+    const lifebuoyRed = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.52, 0.52), new THREE.MeshLambertMaterial({ color: 0xdb3236 }));
+    lifebuoyRed.position.set(0.85, 0.95, -0.95);
+    boat.add(lifebuoyRed);
+
+    const lifebuoyCenter = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.28, 0.28), cabinWallMat);
+    lifebuoyCenter.position.set(0.85, 0.95, -0.95);
+    boat.add(lifebuoyCenter);
+
+    const lifebuoyStripe = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.14, 0.54), whiteTrimMat);
+    lifebuoyStripe.position.set(0.85, 0.95, -0.95);
+    boat.add(lifebuoyStripe);
+
+    // Copper Stovepipe Chimney on Roof
+    const stovepipe = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.65, 0.14), new THREE.MeshLambertMaterial({ color: 0xb26b38 }));
+    stovepipe.position.set(0.55, 1.9, -1.45);
+    boat.add(stovepipe);
+
+    const stovepipeCap = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.08, 0.24), ironMat);
+    stovepipeCap.position.set(0.55, 2.25, -1.45);
+    boat.add(stovepipeCap);
+
+    // Tiny voxel puff of smoke
+    const smokePuff = new THREE.Mesh(
+      new THREE.BoxGeometry(0.2, 0.2, 0.2),
+      new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.65 })
+    );
+    smokePuff.position.set(0.58, 2.45, -1.48);
+    boat.add(smokePuff);
+
+    // -----------------------------------------------------------------------
+    // D. CARGO HOLD PACKED WITH MAIL & PARCELS (Forward section, Z = 0.5 to 2.2)
+    // -----------------------------------------------------------------------
+    // Wooden Cargo Pallet Decking
+    const cargoFloor = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.08, 2.1), darkWoodMat);
+    cargoFloor.position.set(0, 0.44, 1.15);
+    boat.add(cargoFloor);
+
+    // Large Oak Postal Freight Crate
+    const largeCrate = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.62, 0.68), hullWoodMat);
+    largeCrate.position.set(0.42, 0.74, 0.75);
+    largeCrate.castShadow = true;
+    boat.add(largeCrate);
+
+    // Iron corner bands on crate
+    const crateIron = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.08, 0.7), ironMat);
+    crateIron.position.set(0.42, 0.95, 0.75);
+    boat.add(crateIron);
+
+    // Stamped Parcel Crate stacked on top of large crate
+    const stackedCrate = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.4, 0.48), parcelMat2);
+    stackedCrate.position.set(0.38, 1.25, 0.78);
+    stackedCrate.rotation.y = 0.12;
+    stackedCrate.castShadow = true;
+    boat.add(stackedCrate);
+
+    // Medium Postal Box (Port side)
+    const medCrate = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.48, 0.52), parcelMat1);
+    medCrate.position.set(-0.45, 0.68, 0.7);
+    medCrate.castShadow = true;
+    boat.add(medCrate);
+
+    // Stack of Envelopes with Red Seals on top of medCrate
+    const envelopeStack1 = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.16, 0.28), envelopeMat);
+    envelopeStack1.position.set(-0.45, 0.98, 0.7);
+    envelopeStack1.rotation.y = -0.15;
+    boat.add(envelopeStack1);
+
+    // Cardboard parcels with shipping labels & red twine
+    const parcel1 = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.32, 0.42), parcelMat1);
+    parcel1.position.set(-0.35, 0.6, 1.55);
+    boat.add(parcel1);
+
+    const parcelString1 = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.04, 0.06), new THREE.MeshLambertMaterial({ color: 0xcc3333 }));
+    parcelString1.position.set(-0.35, 0.6, 1.55);
+    boat.add(parcelString1);
+
+    const parcel2 = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.26, 0.38), parcelMat2);
+    parcel2.position.set(0.42, 0.57, 1.5);
+    boat.add(parcel2);
+
+    // Second stack of Letters / Envelopes on parcel2
+    const envelopeStack2 = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.14, 0.24), envelopeMat);
+    envelopeStack2.position.set(0.42, 0.76, 1.5);
+    envelopeStack2.rotation.y = 0.2;
+    boat.add(envelopeStack2);
+
+    // Steve's Spare Postal Bag resting in cargo bay
+    const spareBag = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.28, 0.16), bagMat);
+    spareBag.position.set(0.04, 0.58, 0.95);
+    spareBag.rotation.y = 0.35;
+    spareBag.rotation.z = -0.1;
+    boat.add(spareBag);
+
+    // Canvas Mail Sacks (Burlap tied with postal blue stripe)
+    const mailSack1 = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.48, 0.42), sackMat);
+    mailSack1.position.set(0.02, 0.65, 1.85);
+    mailSack1.castShadow = true;
+    boat.add(mailSack1);
+
+    const sackStripe = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.08, 0.44), postalNavyMat);
+    sackStripe.position.set(0.02, 0.65, 1.85);
+    boat.add(sackStripe);
+
+    const sackTie = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.12, 0.18), ropeMat);
+    sackTie.position.set(0.02, 0.92, 1.85);
+    boat.add(sackTie);
+
+    // -----------------------------------------------------------------------
+    // E. FORWARD MAST & SWALLOWTAIL POSTAL HORN PENNANT
+    // -----------------------------------------------------------------------
+    const mast = new THREE.Mesh(new THREE.BoxGeometry(0.15, 2.7, 0.15), darkWoodMat);
+    mast.position.set(0, 1.7, 2.35);
+    mast.castShadow = true;
+    boat.add(mast);
+
+    const crossbar = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.08, 0.08), darkWoodMat);
+    crossbar.position.set(0, 2.5, 2.35);
+    boat.add(crossbar);
+
+    const finial = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.22, 0.16), postalGoldMat);
+    finial.position.set(0, 3.12, 2.35);
+    boat.add(finial);
+
+    // Flying Postal Swallowtail Pennant
+    const pennantMain = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.48, 0.85), postalNavyMat);
+    pennantMain.position.set(0, 2.78, 1.85);
+    boat.add(pennantMain);
+
+    const swallowtailTop = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.16, 0.35), postalNavyMat);
+    swallowtailTop.position.set(0, 2.94, 1.3);
+    boat.add(swallowtailTop);
+
+    const swallowtailBot = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.16, 0.35), postalNavyMat);
+    swallowtailBot.position.set(0, 2.62, 1.3);
+    boat.add(swallowtailBot);
+
+    // Golden Postal Horn Insignia on Pennant
+    const postalHorn = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.22, 0.42), postalGoldMat);
+    postalHorn.position.set(0, 2.78, 1.85);
+    boat.add(postalHorn);
+
+    // -----------------------------------------------------------------------
+    // F. BRASS BOW LANTERN WITH WARM GLOW
+    // -----------------------------------------------------------------------
+    const lanternBracket = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.45), ironMat);
+    lanternBracket.position.set(0, 0.72, 3.65);
+    boat.add(lanternBracket);
+
+    const lanternCasing = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.38, 0.24), postalGoldMat);
+    lanternCasing.position.set(0, 0.58, 3.82);
+    boat.add(lanternCasing);
+
+    const lanternCore = new THREE.Mesh(
+      new THREE.BoxGeometry(0.16, 0.24, 0.16),
+      new THREE.MeshBasicMaterial({ color: 0xffea78 })
+    );
+    lanternCore.position.set(0, 0.58, 3.82);
+    boat.add(lanternCore);
+
+    const boatLight = new THREE.PointLight(0xffaa33, 0.85, 8.5);
+    boatLight.position.set(0, 0.65, 3.85);
+    boat.add(boatLight);
+
+    // -----------------------------------------------------------------------
+    // G. MOORING CLEATS & TETHER ROPES (Connecting to South Gate Pier)
+    // -----------------------------------------------------------------------
+    const cleatGeo = new THREE.BoxGeometry(0.12, 0.1, 0.24);
+    const bowCleat = new THREE.Mesh(cleatGeo, ironMat);
+    bowCleat.position.set(-0.98, 0.65, 2.0);
+    boat.add(bowCleat);
+
+    const sternCleat = new THREE.Mesh(cleatGeo, ironMat);
+    sternCleat.position.set(-0.98, 0.65, -1.9);
+    boat.add(sternCleat);
+
+    // Mooring ropes tying boat to pier posts:
+    const bowRope = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.06, 0.06), ropeMat);
+    bowRope.position.set(-1.22, 0.65, 2.0);
+    boat.add(bowRope);
+
+    const sternRope = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.06, 0.06), ropeMat);
+    sternRope.position.set(-1.22, 0.65, -1.9);
+    boat.add(sternRope);
+
+    // -----------------------------------------------------------------------
+    // H. POSITIONING AT SOUTH GATE ENTRANCE PIER & WATER BOBBING
+    // -----------------------------------------------------------------------
+    boat.position.set(2.55, -0.42, 31.5);
+    boat.rotation.y = 0; // Bow pointing South toward the open sea
+
+    boat.userData = {
+      initialY: boat.position.y,
+      initialZ: boat.position.z,
+      timeOffset: 0.4
+    };
+
+    this.postmanBoat = boat;
+    this.boatMeshes.push(boat);
+    this.scene.add(boat);
   }
 
   // =========================================================================

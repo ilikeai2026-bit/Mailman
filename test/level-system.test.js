@@ -9,7 +9,14 @@ import {
   mailmanCapTexture,
   mailmanBagTexture
 } from '../src/textures.js';
-import { detectMobilePhone } from '../src/ui.js';
+import {
+  detectMobilePhone,
+  GAME_SHARE_URL,
+  formatLevelShareMessage,
+  formatLevelShare,
+  formatGrandShareMessage,
+  formatGrandShare
+} from '../src/ui.js';
 
 console.log('--- Testing 10-Level Mailman Campaign System ---');
 
@@ -167,30 +174,43 @@ const totalCampaignTime = mockGame.levelStats.reduce((sum, s) => sum + s.timeTak
 console.log(`✓ All 10 Levels successfully beaten! Total delivery time: ${totalCampaignTime}s`);
 console.log('✓ Grand Championship Golden Cup awarded on Level 10 finish');
 
-// 4. Test Share Message Formatting
-const gameUrl = 'https://ilikeai2026-bit.github.io/Mailman/';
-
-function formatLevelShare(level, timeTaken) {
-  return `📬 I finished Level ${level} of Mailman in ${timeTaken}s! Can you beat my time? Play here: ${gameUrl}`;
-}
-
-function formatGrandShare(totalTime) {
-  return `🏆 I conquered all 10 Levels of Mailman in ${totalTime}s total and won the Championship Cup! Can you beat my time? Play here: ${gameUrl}`;
+// 4. Test Share Message Formatting & Single-URL Guarantee
+const levelMsg = formatLevelShareMessage(3, 42);
+if (levelMsg.includes(GAME_SHARE_URL)) {
+  console.error('FAIL: Level share message should not contain URL (to prevent double URL on Web Share API)!');
+  process.exit(1);
 }
 
 const levelShareStr = formatLevelShare(3, 42);
-if (!levelShareStr.includes('Level 3') || !levelShareStr.includes('42s') || !levelShareStr.includes(gameUrl)) {
+if (!levelShareStr.includes('Level 3') || !levelShareStr.includes('42s') || !levelShareStr.includes(GAME_SHARE_URL)) {
   console.error('FAIL: Level complete share string missing required parameters!');
   process.exit(1);
 }
-console.log('✓ Level share link formatted correctly:', levelShareStr);
+// Verify URL appears EXACTLY once in the full share string
+const levelUrlCount = (levelShareStr.match(new RegExp(GAME_SHARE_URL, 'g')) || []).length;
+if (levelUrlCount !== 1) {
+  console.error(`FAIL: Level share string contains URL ${levelUrlCount} times, expected exactly 1!`);
+  process.exit(1);
+}
+console.log('✓ Level share link formatted correctly with single URL:', levelShareStr);
+
+const grandMsg = formatGrandShareMessage(totalCampaignTime);
+if (grandMsg.includes(GAME_SHARE_URL)) {
+  console.error('FAIL: Grand share message should not contain URL (to prevent double URL on Web Share API)!');
+  process.exit(1);
+}
 
 const grandShareStr = formatGrandShare(totalCampaignTime);
-if (!grandShareStr.includes('10 Levels') || !grandShareStr.includes('Championship Cup') || !grandShareStr.includes(gameUrl)) {
+if (!grandShareStr.includes('10 Levels') || !grandShareStr.includes('Championship Cup') || !grandShareStr.includes(GAME_SHARE_URL)) {
   console.error('FAIL: Grand championship share string missing required parameters!');
   process.exit(1);
 }
-console.log('✓ Grand victory share link formatted correctly:', grandShareStr);
+const grandUrlCount = (grandShareStr.match(new RegExp(GAME_SHARE_URL, 'g')) || []).length;
+if (grandUrlCount !== 1) {
+  console.error(`FAIL: Grand share string contains URL ${grandUrlCount} times, expected exactly 1!`);
+  process.exit(1);
+}
+console.log('✓ Grand victory share link formatted correctly with single URL:', grandShareStr);
 
 // 5. Verify Distinct Mailman Textures (Front vs Back vs Sides)
 if (!mailmanShirtTexture || !mailmanShirtBackTexture || !mailmanShirtSideTexture || !mailmanPantsTexture || !mailmanArmTexture || !mailmanCapTexture || !mailmanBagTexture) {

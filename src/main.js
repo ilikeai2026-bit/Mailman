@@ -95,6 +95,8 @@ export class Game {
       left: false,
       right: false
     };
+    this.voiceThrottle = 0; // +1 forward, -1 backward (relative to player heading)
+    this.voiceThrottleTimeout = null;
 
     // Initialize subsystems
     this.setupLights();
@@ -306,6 +308,40 @@ export class Game {
     }
   }
 
+  turnPlayer90(direction = 'left') {
+    if (this.isLevelActive && this.player && typeof this.player.turn90 === 'function') {
+      this.player.turn90(direction);
+    }
+  }
+
+  movePlayerForward(durationMs = 1200) {
+    if (!this.isLevelActive) return;
+    this.voiceThrottle = 1;
+    if (this.voiceThrottleTimeout) clearTimeout(this.voiceThrottleTimeout);
+    this.voiceThrottleTimeout = setTimeout(() => {
+      this.voiceThrottle = 0;
+      this.voiceThrottleTimeout = null;
+    }, durationMs);
+  }
+
+  movePlayerBackward(durationMs = 1200) {
+    if (!this.isLevelActive) return;
+    this.voiceThrottle = -1;
+    if (this.voiceThrottleTimeout) clearTimeout(this.voiceThrottleTimeout);
+    this.voiceThrottleTimeout = setTimeout(() => {
+      this.voiceThrottle = 0;
+      this.voiceThrottleTimeout = null;
+    }, durationMs);
+  }
+
+  stopPlayerMovement() {
+    this.voiceThrottle = 0;
+    if (this.voiceThrottleTimeout) {
+      clearTimeout(this.voiceThrottleTimeout);
+      this.voiceThrottleTimeout = null;
+    }
+  }
+
   clearAllInputs() {
     this.keys.up = false;
     this.keys.down = false;
@@ -315,6 +351,10 @@ export class Game {
     this.virtualInput.down = false;
     this.virtualInput.left = false;
     this.virtualInput.right = false;
+    this.stopPlayerMovement();
+    if (this.player) {
+      this.player.turnTargetHeading = null;
+    }
   }
 
   setupWindowListeners() {
@@ -327,18 +367,24 @@ export class Game {
         case 'KeyW':
         case 'ArrowUp':
           this.keys.up = true;
+          this.stopPlayerMovement();
           break;
         case 'KeyS':
         case 'ArrowDown':
           this.keys.down = true;
+          this.stopPlayerMovement();
           break;
         case 'KeyA':
         case 'ArrowLeft':
           this.keys.left = true;
+          this.stopPlayerMovement();
+          if (this.player) this.player.turnTargetHeading = null;
           break;
         case 'KeyD':
         case 'ArrowRight':
           this.keys.right = true;
+          this.stopPlayerMovement();
+          if (this.player) this.player.turnTargetHeading = null;
           break;
         case 'KeyV':
           this.toggleCameraMode();
@@ -601,8 +647,8 @@ export class Game {
     // 1. Process movement only if level is active
     if (this.isLevelActive) {
       if (this.cameraMode === 'third-person') {
-        const up = this.keys.up || this.virtualInput.up ? 1 : 0;
-        const down = this.keys.down || this.virtualInput.down ? 1 : 0;
+        const up = (this.keys.up || this.virtualInput.up ? 1 : 0) || (this.voiceThrottle > 0 ? 1 : 0);
+        const down = (this.keys.down || this.virtualInput.down ? 1 : 0) || (this.voiceThrottle < 0 ? 1 : 0);
         const left = this.keys.left || this.virtualInput.left ? 1 : 0;
         const right = this.keys.right || this.virtualInput.right ? 1 : 0;
 
@@ -611,7 +657,20 @@ export class Game {
 
         this.player.update(dt, { throttle, turn }, this.map, this.cameraMode);
       } else {
-        const moveDir = this.calculateMovementDirection();
+        let moveDir = this.calculateMovementDirection();
+
+        // In Top-Down mode: if no keyboard/dpad direction is active, voice throttle moves to player front/back
+        if (moveDir.x === 0 && moveDir.z === 0 && this.voiceThrottle !== 0) {
+          const heading = this.player.heading;
+          const fwdX = Math.sin(heading);
+          const fwdZ = Math.cos(heading);
+          if (this.voiceThrottle > 0) {
+            moveDir = { x: fwdX, z: fwdZ };
+          } else {
+            moveDir = { x: fwdX, z: fwdZ, reverse: true };
+          }
+        }
+
         this.player.update(dt, { moveDir }, this.map, this.cameraMode);
       }
     } else {

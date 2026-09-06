@@ -25,6 +25,7 @@ export class Player {
     this.heading = 0; // facing angle in radians (0 = facing +Z)
     this.targetRotationY = 0;
     this.currentRotationY = 0;
+    this.turnTargetHeading = null;
 
     this.position = new THREE.Vector3(startX, 0, startZ);
     this.group = new THREE.Group();
@@ -229,6 +230,16 @@ export class Player {
     }
   }
 
+  turn90(direction = 'left') {
+    const delta = direction === 'left' ? Math.PI / 2 : -Math.PI / 2;
+    // Calculate nearest 90-degree cardinal angle from current heading + delta
+    const currentCardinal = Math.round(this.heading / (Math.PI / 2));
+    let target = (currentCardinal * (Math.PI / 2)) + delta;
+    while (target > Math.PI) target -= Math.PI * 2;
+    while (target < -Math.PI) target += Math.PI * 2;
+    this.turnTargetHeading = target;
+  }
+
   // 3rd-Person Controls:
   // - Pressing Left turns Steve left (increases heading towards +X)
   // - Pressing Right turns Steve right (decreases heading towards -X)
@@ -239,6 +250,7 @@ export class Player {
 
     // 1. Turn Left / Right
     if (turn !== 0) {
+      this.turnTargetHeading = null; // Manual turn cancels queued turn
       this.heading += turn * this.turnSpeed * dt;
       while (this.heading > Math.PI) this.heading -= Math.PI * 2;
       while (this.heading < -Math.PI) this.heading += Math.PI * 2;
@@ -246,6 +258,33 @@ export class Player {
       this.currentRotationY = this.heading;
       this.innerGroup.rotation.y = this.heading;
       this.isTurning = true;
+    } else if (this.turnTargetHeading !== null) {
+      // Smooth 90-degree turn to target cardinal heading
+      let diff = this.turnTargetHeading - this.heading;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+
+      if (Math.abs(diff) < 0.04) {
+        this.heading = this.turnTargetHeading;
+        this.turnTargetHeading = null;
+        this.isTurning = false;
+      } else {
+        const step = Math.sign(diff) * Math.min(Math.abs(diff), 8.5 * dt);
+        this.heading += step;
+        while (this.heading > Math.PI) this.heading -= Math.PI * 2;
+        while (this.heading < -Math.PI) this.heading += Math.PI * 2;
+        this.isTurning = true;
+
+        this.walkTime += dt * 7;
+        const turnSwing = Math.sin(this.walkTime) * 0.25;
+        this.leftLegPivot.rotation.x = turnSwing;
+        this.rightLegPivot.rotation.x = -turnSwing;
+        this.leftArmPivot.rotation.x = -turnSwing * 0.5;
+        this.rightArmPivot.rotation.x = turnSwing * 0.5;
+      }
+      this.targetRotationY = this.heading;
+      this.currentRotationY = this.heading;
+      this.innerGroup.rotation.y = this.heading;
     } else {
       this.isTurning = false;
     }
@@ -318,10 +357,12 @@ export class Player {
     this.isMoving = len > 0.05;
 
     if (this.isMoving) {
-      const normX = moveDir.x / len;
-      const normZ = moveDir.z / len;
+      const isReverse = Boolean(moveDir.reverse);
+      const normX = (moveDir.x / len) * (isReverse ? -1 : 1);
+      const normZ = (moveDir.z / len) * (isReverse ? -1 : 1);
 
-      const moveStep = this.speed * dt;
+      const moveSpeed = isReverse ? this.speed * 0.72 : this.speed;
+      const moveStep = moveSpeed * dt;
       let newX = this.position.x + normX * moveStep;
       let newZ = this.position.z + normZ * moveStep;
 
@@ -341,14 +382,17 @@ export class Player {
       this.group.position.x = this.position.x;
       this.group.position.z = this.position.z;
 
-      this.targetRotationY = Math.atan2(normX, normZ);
-      this.heading = this.targetRotationY;
+      // When moving forward, Steve faces the movement direction
+      if (!isReverse) {
+        this.targetRotationY = Math.atan2(normX, normZ);
+        this.heading = this.targetRotationY;
+      }
 
       // Play footstep audio
       const isStone = map.isStoneTile(this.position.x, this.position.z);
       sound.playFootstep(isStone);
 
-      this.walkTime += dt * 11;
+      this.walkTime += dt * 11 * (isReverse ? -1 : 1);
       const swing = Math.sin(this.walkTime);
 
       this.leftLegPivot.rotation.x = swing * 0.65;
@@ -365,6 +409,24 @@ export class Player {
       this.rightArmPivot.rotation.x *= 0.8;
       this.innerGroup.position.y *= 0.8;
       this.head.rotation.y *= 0.8;
+
+      if (this.turnTargetHeading !== null) {
+        let turnDiff = this.turnTargetHeading - this.heading;
+        while (turnDiff < -Math.PI) turnDiff += Math.PI * 2;
+        while (turnDiff > Math.PI) turnDiff -= Math.PI * 2;
+
+        if (Math.abs(turnDiff) < 0.04) {
+          this.heading = this.turnTargetHeading;
+          this.targetRotationY = this.turnTargetHeading;
+          this.turnTargetHeading = null;
+        } else {
+          const step = Math.sign(turnDiff) * Math.min(Math.abs(turnDiff), 8.5 * dt);
+          this.heading += step;
+          while (this.heading > Math.PI) this.heading -= Math.PI * 2;
+          while (this.heading < -Math.PI) this.heading += Math.PI * 2;
+          this.targetRotationY = this.heading;
+        }
+      }
     }
 
     let diff = this.targetRotationY - this.currentRotationY;
@@ -396,5 +458,6 @@ export class Player {
     this.walkTime = 0;
     this.isMoving = false;
     this.isTurning = false;
+    this.turnTargetHeading = null;
   }
 }
