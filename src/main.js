@@ -8,7 +8,7 @@ import { sound } from './audio.js';
 
 class Game {
   constructor() {
-    this.container = document.getElementById('game-container');
+    this.container = document.getElementById('game-container') || document.body;
     this.clock = new THREE.Clock();
 
     // Scene
@@ -19,7 +19,9 @@ class Game {
     this.cameraMode = 'third-person';
 
     // Camera setup
-    this.aspect = window.innerWidth / window.innerHeight;
+    const width = window.innerWidth || 800;
+    const height = window.innerHeight || 600;
+    this.aspect = width / height;
     this.viewSize = 6.0;
     this.targetViewSize = 6.0;
     this.minViewSize = 3.5;
@@ -59,8 +61,8 @@ class Game {
 
     // WebGL Renderer
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setSize(width, height);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.container.appendChild(this.renderer.domElement);
@@ -542,7 +544,22 @@ class Game {
   }
 }
 
-// Start game when DOM is loaded
-window.addEventListener('DOMContentLoaded', () => {
-  new Game();
-});
+// Start game when DOM is loaded or immediately if already ready
+function startGame() {
+  try {
+    console.log('[Game] Starting Minecraft Park Explorer...');
+    window.game = new Game();
+  } catch (err) {
+    console.error('[Game] Fatal error initializing game:', err);
+    const errBox = document.createElement('div');
+    errBox.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(30,30,30,0.95);border:3px solid #ff4444;color:#ff8888;padding:24px;font-family:monospace;font-size:12px;z-index:99999;max-width:90%;text-align:center;box-shadow:0 0 25px rgba(0,0,0,0.8);line-height:1.6;';
+    errBox.innerHTML = `<h3 style="color:#ff4444;margin-bottom:12px;font-size:16px;">⚠️ Game Initialization Error</h3><p style="color:#ffffff;margin-bottom:10px;">${err.message}</p><pre style="text-align:left;background:#111;padding:10px;overflow:auto;max-height:200px;font-size:11px;color:#ccc;border:1px solid #444;">${err.stack || err}</pre>`;
+    document.body.appendChild(errBox);
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startGame);
+} else {
+  startGame();
+}
